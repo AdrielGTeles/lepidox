@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "Lepidox",
+  "short_name": "Lepidox",
+  "version": "1.0.0",
+  "description": "Open-source smart dashboard rotator for war rooms, NOCs and monitoring environments.",
+  "permissions": [
+    "tabs",
+    "storage",
+    "alarms"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "Lepidox · Inativo",
+    "default_popup": "src/popup/popup.html",
+    "default_icon": {
+      "16": "assets/icons/lepidox-inactive-16.png",
+      "32": "assets/icons/lepidox-inactive-32.png",
+      "48": "assets/icons/lepidox-inactive-48.png",
+      "128": "assets/icons/lepidox-inactive-128.png"
+    }
+  },
+  "icons": {
+    "16": "assets/icons/lepidox-16.png",
+    "32": "assets/icons/lepidox-32.png",
+    "48": "assets/icons/lepidox-48.png",
+    "128": "assets/icons/lepidox-128.png"
+  },
+  "options_ui": {
+    "page": "src/options/options.html",
+    "open_in_tab": true
+  },
+  "commands": {
+    "toggle-pause": {
+      "suggested_key": { "default": "Ctrl+Shift+Space" },
+      "description": "Pausar ou continuar a rotação do Lepidox"
+    },
+    "next-screen": {
+      "suggested_key": { "default": "Ctrl+Shift+Right" },
+      "description": "Ir para a próxima tela"
+    },
+    "previous-screen": {
+      "suggested_key": { "default": "Ctrl+Shift+Left" },
+      "description": "Voltar para a tela anterior"
+    },
+    "stop-rotation": {
+      "suggested_key": { "default": "Ctrl+Shift+X" },
+      "description": "Encerrar a lista ativa"
+    }
+  }
+}

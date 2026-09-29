@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lepidox · Configurações</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <a class="skipLink" href="#lists">Pular para listas</a>
+  <header class="pageHeader">
+    <div class="brandBlock">
+      <div class="brandRow">
+        <span class="brandMark" aria-hidden="true"></span>
+        <p class="eyebrow">SMART DASHBOARD ROTATOR</p>
+      </div>
+      <h1>Lepidox<span>.</span></h1>
+      <p class="subtitle">Listas, rotação, investigação e memória inteligente para dashboards.</p>
+    </div>
+    <div class="headerCard">
+      <div class="headerCardTop">
+        <span class="liveIndicator"></span>
+        <span>LEPIDOX 1.0.0</span>
+      </div>
+      <strong id="listCount">0 listas</strong>
+      <span id="screenCount">0 telas configuradas</span>
+    </div>
+  </header>
+
+  <main>
+    <section class="panel toolbarPanel">
+      <div class="toolbarCopy">
+        <p class="sectionLabel">CONFIGURAÇÃO</p>
+        <h2>Listas de telas</h2>
+        <p>Nomeie cada tela ou deixe o campo vazio para o Lepidox usar automaticamente o título da página carregada.</p>
+      </div>
+      <div class="toolbarActions">
+        <button id="importLists" class="button buttonQuiet">Importar</button>
+        <button id="exportLists" class="button buttonSecondary">Exportar</button>
+        <button id="newList" class="button buttonPrimary">+ Nova lista</button>
+        <input id="importFile" type="file" accept="application/json,.json" hidden>
+      </div>
+    </section>
+
+    <section class="infoStrip">
+      <div><span class="infoDot green"></span><strong>Privacidade</strong><span>Sem credenciais, cookies ou telemetria.</span></div>
+      <div><span class="infoDot blue"></span><strong>Memória</strong><span>3 telas quentes; investigação expande temporariamente.</span></div>
+      <div><span class="infoDot yellow"></span><strong>Intervalos</strong><span>Mínimo de 5s com scheduler híbrido.</span></div>
+    </section>
+
+    <section id="lists" class="lists"></section>
+
+    <section id="empty" class="emptyState" hidden>
+      <span class="emptyMark" aria-hidden="true"></span>
+      <h2>Nenhuma lista configurada</h2>
+      <p>Crie sua primeira lista para organizar os dashboards da war room.</p>
+      <button class="button buttonPrimary" data-create-list>+ Nova lista</button>
+    </section>
+
+    <section class="panel shortcutsPanel">
+      <div>
+        <p class="sectionLabel">ATALHOS</p>
+        <h2>Controle durante a investigação</h2>
+      </div>
+      <div class="shortcutGrid">
+        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>Space</kbd><small>Pausar / continuar</small></div>
+        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>→</kbd><small>Próxima tela</small></div>
+        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>←</kbd><small>Tela anterior</small></div>
+        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>X</kbd><small>Encerrar lista</small></div>
+      </div>
+      <p class="shortcutHint">Os atalhos podem ser personalizados em <code>chrome://extensions/shortcuts</code> ou <code>edge://extensions/shortcuts</code>.</p>
+    </section>
+  </main>
+
+  <template id="listTemplate">
+    <article class="panel listCard">
+      <div class="listHeader">
+        <div class="listIdentity">
+          <span class="listIndex">01</span>
+          <div>
+            <p class="sectionLabel">LISTA</p>
+            <h2 class="listTitle">Nova lista</h2>
+            <p class="listSummary">0 telas</p>
+          </div>
+        </div>
+        <div class="listHeaderActions">
+          <button class="button buttonQuiet preflight">Verificar acessos</button>
+          <button class="button buttonDanger deleteList">Excluir</button>
+        </div>
+      </div>
+
+      <div class="settingsGrid">
+        <label class="field span2">
+          <span>Nome da lista</span>
+          <input class="listName" maxlength="80" placeholder="War Room Geral">
+        </label>
+        <label class="field">
+          <span>Rotação padrão</span>
+          <div class="inputSuffix"><input class="defaultDuration" type="number" min="5" step="1"><b>s</b></div>
+        </label>
+        <label class="field">
+          <span>Pool em investigação</span>
+          <select class="investigationPool">
+            <option value="3">3 telas</option>
+            <option value="5">5 telas</option>
+            <option value="7">7 telas</option>
+          </select>
+        </label>
+        <label class="switchField span2">
+          <div>
+            <strong>Retomar após reiniciar o navegador</strong>
+            <small>Reabre esta lista automaticamente se ela estava em execução antes do encerramento.</small>
+          </div>
+          <input class="autoResume" type="checkbox">
+          <span class="switchTrack"></span>
+        </label>
+      </div>
+
+      <div class="screensHeader">
+        <div>
+          <p class="sectionLabel">TELAS</p>
+          <p class="screensHelp">Nome vazio = título automático da página. Duração vazia = duração padrão da lista.</p>
+        </div>
+        <button class="button buttonSecondary addScreen">+ Adicionar tela</button>
+      </div>
+
+      <div class="screenTableWrap">
+        <div class="screenTableHead">
+          <span>#</span><span>Estado</span><span>Nome</span><span>URL</span><span>Duração</span><span>Ativa</span><span></span>
+        </div>
+        <div class="screenRows"></div>
+      </div>
+
+      <div class="listFooter">
+        <span class="saveStatus"></span>
+        <button class="button buttonPrimary saveList">Salvar alterações</button>
+      </div>
+    </article>
+  </template>
+
+  <template id="screenTemplate">
+    <div class="screenRow">
+      <div class="screenOrder">
+        <span class="screenNumber">01</span>
+        <div class="reorderButtons">
+          <button class="moveUp" title="Mover para cima" aria-label="Mover para cima">↑</button>
+          <button class="moveDown" title="Mover para baixo" aria-label="Mover para baixo">↓</button>
+        </div>
+      </div>
+      <div class="statusCell">
+        <span class="screenStatusDot"></span>
+        <small class="screenStatusText">Nova</small>
+      </div>
+      <label class="compactField">
+        <span class="srOnly">Nome</span>
+        <input class="screenName" maxlength="120" placeholder="Automático pelo título">
+        <small class="resolvedTitle"></small>
+      </label>
+      <label class="compactField">
+        <span class="srOnly">URL</span>
+        <input class="screenUrl" type="url" placeholder="https://grafana.exemplo.com/d/...">
+      </label>
+      <label class="compactField durationField">
+        <span class="srOnly">Duração</span>
+        <input class="screenDuration" type="number" min="5" step="1" placeholder="Padrão">
+        <b>s</b>
+      </label>
+      <label class="rowSwitch" title="Incluir na rotação">
+        <input class="screenEnabled" type="checkbox" checked>
+        <span></span>
+      </label>
+      <button class="removeScreen" title="Remover tela" aria-label="Remover tela">×</button>
+    </div>
+  </template>
+
+  <div id="toast" class="toast" hidden></div>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

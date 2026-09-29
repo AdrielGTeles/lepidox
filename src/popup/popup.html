@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Lepidox</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brandMark" aria-hidden="true"></span>
+        <div>
+          <p class="eyebrow">SMART DASHBOARD ROTATOR</p>
+          <h1>Lepidox<span>.</span></h1>
+        </div>
+      </div>
+      <button id="openOptions" class="iconButton" title="Abrir configurações" aria-label="Abrir configurações">
+        <span class="gear" aria-hidden="true"></span>
+      </button>
+    </header>
+
+    <section id="session" class="panel sessionPanel hidden">
+      <div class="sessionHead">
+        <div>
+          <div class="statusLine">
+            <span id="sessionDot" class="statusDot"></span>
+            <span id="statusBadge" class="statusText">Rotacionando</span>
+          </div>
+          <h2 id="activeListName">—</h2>
+        </div>
+        <span id="counter" class="counter">—</span>
+      </div>
+
+      <div class="nowPlaying">
+        <p class="sectionLabel">TELA ATUAL</p>
+        <div class="nowPlayingRow">
+          <strong id="currentScreen">—</strong>
+          <span id="countdown" class="countdown">—</span>
+        </div>
+        <div class="progressTrack"><span id="progressBar"></span></div>
+      </div>
+
+      <div class="controls" aria-label="Controles de rotação">
+        <button id="previous" class="controlButton" title="Anterior">←</button>
+        <button id="pauseResume" class="button buttonPrimary">Pausar</button>
+        <button id="next" class="controlButton" title="Próxima">→</button>
+      </div>
+
+      <div class="quickSwitch">
+        <div class="quickSwitchHead">
+          <span class="sectionLabel">IR PARA TELA</span>
+          <span id="poolInfo" class="mutedSmall"></span>
+        </div>
+        <input id="screenSearch" type="search" placeholder="Buscar por nome, título ou URL" autocomplete="off">
+        <div id="screenList" class="screenList"></div>
+      </div>
+
+      <p id="runtimeError" class="runtimeAlert hidden"></p>
+      <button id="stop" class="button buttonDanger wide">Encerrar lista</button>
+    </section>
+
+    <section class="panel listsPanel">
+      <div class="sectionHead">
+        <div>
+          <p class="sectionLabel">LISTAS</p>
+          <h2>Ambientes salvos</h2>
+        </div>
+        <button id="manageLists" class="button buttonQuiet">Gerenciar</button>
+      </div>
+      <div id="lists" class="lists"></div>
+      <div id="empty" class="emptyState hidden">
+        <strong>Nenhuma lista configurada</strong>
+        <span>Crie uma lista de dashboards para começar.</span>
+      </div>
+    </section>
+
+    <p id="message" class="toast hidden"></p>
+    <footer>Open source · MPL-2.0</footer>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
