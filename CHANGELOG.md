@@ -1,9 +1,5 @@
 # Changelog
 
-## Unreleased
-
-- Simplified the logo to a screen outline ending in a clockwise arrow, in flat copper inspired by the name's iron-oxide origin. Updated extension icons, toolbar states and store artwork, with a shared SVG/PNG source and a brand preview.
-
 ## 1.1.0 - 2026-10-02
 
 First release prepared for the Chrome Web Store and Microsoft Edge Add-ons.
@@ -18,7 +14,7 @@ First release prepared for the Chrome Web Store and Microsoft Edge Add-ons.
 - Drag screens to reorder them (or use the arrow keys on the handle). Removing a screen can be undone.
 - The shortcuts panel shows the keys actually assigned and links to the browser's shortcut settings.
 - English and Brazilian Portuguese.
-- New logo and icons: three plates in a spiral, each turned one step further than the one below, going from steel to rust. The name comes from lepidocrocite, the iron oxide-hydroxide found in rust, which crystallises in thin plates. The top plate is green while rotating, amber when paused, red when something needs attention and grey when stopped.
+- New logo and icons: a screen outline that ends in a clockwise arrow, in flat copper inspired by the name's iron-oxide origin (lepidocrocite, the iron oxide-hydroxide found in rust). The same shape is green while rotating, amber when paused, red when something needs attention and grey when stopped.
 
 ### Behaviour
 
@@ -39,7 +35,8 @@ First release prepared for the Chrome Web Store and Microsoft Edge Add-ons.
 
 ### Project
 
-- Unit tests for the rotation engine (`npm test`), a validator for manifest, locales, icons and sources, a dependency-free packager (`npm run build`) and icon generator (`npm run icons`).
+- Unit tests for the rotation engine (`npm test`), a validator for manifest, locales, icons and sources, a dependency-free packager (`npm run build`) and icon generator (`npm run icons`), which writes the SVG and every PNG from one outline.
+- A brand preview (`docs/brand.html`) and a script that rebuilds the store screenshots from the real interface (`scripts/store-screenshots.mjs`).
 - Copyright notice, privacy policy and store listing material for publication by an individual developer.
 
 ## 1.0.0 - 2026-09-29

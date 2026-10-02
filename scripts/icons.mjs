@@ -18,7 +18,8 @@ import { crc32, deflateSync } from "node:zlib";
 
 import { root } from "./validate.mjs";
 
-// A 4-unit stroke becomes 2px at the smallest toolbar size (16px).
+// A 4-unit stroke becomes 2px at the smallest toolbar size (16px). Straight edges
+// sit on even coordinates so they land on whole pixels at 16, 32 and 48px.
 const GRID = 32;
 const SAMPLES = 8;
 
@@ -33,14 +34,14 @@ const PALETTES = {
 // One filled outline, including the arrow. Arcs specify [radius, sweep, x, y].
 // Keeping the outline as commands makes both outputs use exactly the same mark.
 const OUTLINE = [
-  ["M", 18, 28], ["L", 9, 28], ["A", 6, 1, 3, 22],
-  ["L", 3, 10], ["A", 6, 1, 9, 4],
-  ["L", 21, 4], ["A", 6, 1, 27, 10],
-  ["L", 27, 14], ["L", 30, 14], ["L", 25, 21],
-  ["L", 20, 14], ["L", 23, 14], ["L", 23, 10],
-  ["A", 2, 0, 21, 8], ["L", 9, 8], ["A", 2, 0, 7, 10],
-  ["L", 7, 22], ["A", 2, 0, 9, 24], ["L", 18, 24],
-  ["A", 2, 1, 18, 28], ["Z"]
+  ["M", 17, 28], ["L", 8, 28], ["A", 6, 1, 2, 22],
+  ["L", 2, 10], ["A", 6, 1, 8, 4],
+  ["L", 20, 4], ["A", 6, 1, 26, 10],
+  ["L", 26, 14], ["L", 29, 14], ["L", 24, 21],
+  ["L", 19, 14], ["L", 22, 14], ["L", 22, 10],
+  ["A", 2, 0, 20, 8], ["L", 8, 8], ["A", 2, 0, 6, 10],
+  ["L", 6, 22], ["A", 2, 0, 8, 24], ["L", 17, 24],
+  ["A", 2, 1, 17, 28], ["Z"]
 ];
 
 // Flatten the circular arcs only for rasterisation; SVG retains exact arcs.
