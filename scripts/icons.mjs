@@ -6,9 +6,9 @@
 //   assets/icons/lepidox[-state]-<size>.png   extension and toolbar icons
 //   store/logo-300.png                        Microsoft Edge Add-ons logo
 //
-// Lepidox is named after lepidocrocite, the iron oxide-hydroxide found in rust,
-// which crystallises in thin plates. The mark is three plates in a spiral, each
-// turned one step further than the one below: steel, rust, then the plate on display.
+// A screen outline becomes a clockwise loop: dashboards in continuous rotation.
+// Flat copper refers to lepidocrocite / iron oxide / Rust, the origin of the name.
+// SVG and PNG share the same geometry; no fonts, gradients or dependencies.
 // Usage: node scripts/icons.mjs
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -18,104 +18,95 @@ import { crc32, deflateSync } from "node:zlib";
 
 import { root } from "./validate.mjs";
 
-// Drawn on a 16-unit square so the top plate lands on whole pixels at 16, 32 and 48.
-const GRID = 16;
+// A 4-unit stroke becomes 2px at the smallest toolbar size (16px).
+const GRID = 32;
 const SAMPLES = 8;
 
-// One turn step is a 1:3 slope (18.43 degrees); two steps make a 3:4 slope.
-const STEP = Math.atan(1 / 3);
-
-// Bottom to top: [side, steps turned back from the top plate, corner radius].
-const PLATES = [
-  [11.4, 2, 2.1],
-  [10, 1, 1.9],
-  [8, 0, 1.6]
-];
-
-// Per state, bottom to top: each plate's gradient from its top-left to its bottom-right.
-const STEEL = ["#7b8ba1", "#5b6b82"];
 const PALETTES = {
-  "": [STEEL, ["#b7410e", "#8f2f0a"], ["#fb923c", "#ea580c"]],
-  "-active": [STEEL, ["#15803d", "#14532d"], ["#4ade80", "#16a34a"]],
-  "-paused": [STEEL, ["#b45309", "#78350f"], ["#fcd34d", "#f59e0b"]],
-  "-error": [STEEL, ["#b91c1c", "#7f1d1d"], ["#f87171", "#dc2626"]],
-  "-inactive": [["#475569", "#334155"], STEEL, ["#e2e8f0", "#a8b5c6"]]
+  "": "#c4623c",
+  "-active": "#16a34a",
+  "-paused": "#d99216",
+  "-error": "#dc4545",
+  "-inactive": "#7d8795"
 };
 
-// Corners are rounded by growing each square by its radius, so the points
-// returned here sit that far inside the visible outline.
-function plates(state) {
-  return PLATES.map(([side, steps, radius], index) => {
-    const half = side / 2 - radius;
-    const angle = -steps * STEP;
-    const points = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([x, y]) => [
-      GRID / 2 + x * Math.cos(angle) - y * Math.sin(angle),
-      GRID / 2 + x * Math.sin(angle) + y * Math.cos(angle)
-    ]);
-    const xs = points.map(([x]) => x);
-    const ys = points.map(([, y]) => y);
-    return {
-      points,
-      radius,
-      colors: PALETTES[state][index],
-      box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
-    };
-  });
+// One filled outline, including the arrow. Arcs specify [radius, sweep, x, y].
+// Keeping the outline as commands makes both outputs use exactly the same mark.
+const OUTLINE = [
+  ["M", 18, 28], ["L", 9, 28], ["A", 6, 1, 3, 22],
+  ["L", 3, 10], ["A", 6, 1, 9, 4],
+  ["L", 21, 4], ["A", 6, 1, 27, 10],
+  ["L", 27, 14], ["L", 30, 14], ["L", 25, 21],
+  ["L", 20, 14], ["L", 23, 14], ["L", 23, 10],
+  ["A", 2, 0, 21, 8], ["L", 9, 8], ["A", 2, 0, 7, 10],
+  ["L", 7, 22], ["A", 2, 0, 9, 24], ["L", 18, 24],
+  ["A", 2, 1, 18, 28], ["Z"]
+];
+
+// Flatten the circular arcs only for rasterisation; SVG retains exact arcs.
+function outlinePoints() {
+  const points = [];
+  for (const [command, ...args] of OUTLINE) {
+    if (command === "M" || command === "L") {
+      points.push(args);
+    } else if (command === "A") {
+      const [radius, sweep, x, y] = args;
+      const [px, py] = points.at(-1);
+      const dx = x - px;
+      const dy = y - py;
+      const length = Math.hypot(dx, dy);
+      const offset = Math.sqrt(Math.max(0, radius ** 2 - length ** 2 / 4));
+      const direction = sweep ? 1 : -1;
+      const cx = (px + x) / 2 - direction * dy / length * offset;
+      const cy = (py + y) / 2 + direction * dx / length * offset;
+      const start = Math.atan2(py - cy, px - cx);
+      let angle = Math.atan2(y - cy, x - cx) - start;
+      if (sweep && angle <= 0) angle += Math.PI * 2;
+      if (!sweep && angle >= 0) angle -= Math.PI * 2;
+      const steps = Math.ceil(Math.abs(angle) * 32);
+      for (let step = 1; step <= steps; step += 1) {
+        const at = start + angle * step / steps;
+        points.push([cx + radius * Math.cos(at), cy + radius * Math.sin(at)]);
+      }
+    }
+  }
+  return points;
 }
 
-// True when (x, y) is inside the convex polygon or within `radius` of its outline.
-function insideRounded(points, radius, x, y) {
-  let side = 0;
-  let within = true;
-  let nearest = Infinity;
-  for (let index = 0; index < points.length; index += 1) {
-    const [ax, ay] = points[index];
-    const [bx, by] = points[(index + 1) % points.length];
-    const cross = Math.sign((bx - ax) * (y - ay) - (by - ay) * (x - ax));
-    if (cross !== 0) {
-      if (side === 0) side = cross;
-      else if (cross !== side) within = false;
-    }
-    const along = ((x - ax) * (bx - ax) + (y - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2);
-    const t = Math.max(0, Math.min(1, along));
-    nearest = Math.min(nearest, (x - ax - t * (bx - ax)) ** 2 + (y - ay - t * (by - ay)) ** 2);
-  }
-  return within || nearest <= radius * radius;
-}
+const POINTS = outlinePoints();
 
 const rgb = (hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
 
 // Returns size x size RGBA pixels. `pad` keeps that many transparent pixels around the mark.
 export function render(size, state = "", pad = 0) {
-  const layers = plates(state)
-    .map(({ colors, ...plate }) => ({ ...plate, from: rgb(colors[0]), to: rgb(colors[1]) }))
-    .reverse(); // topmost first: the first plate hit is the one seen
+  const color = rgb(PALETTES[state]);
   const scale = GRID / (size - 2 * pad);
   const pixels = Buffer.alloc(size * size * 4);
+  const coverage = new Uint8Array(size * size);
 
-  for (let py = 0; py < size; py += 1) {
-    for (let px = 0; px < size; px += 1) {
-      const sum = [0, 0, 0];
-      let covered = 0;
-      for (let sy = 0; sy < SAMPLES; sy += 1) {
-        for (let sx = 0; sx < SAMPLES; sx += 1) {
-          const x = (px + (sx + 0.5) / SAMPLES - pad) * scale;
-          const y = (py + (sy + 0.5) / SAMPLES - pad) * scale;
-          const plate = layers.find(({ points, radius }) => insideRounded(points, radius, x, y));
-          if (!plate) continue;
-          covered += 1;
-          const [x0, y0, x1, y1] = plate.box;
-          const t = Math.max(0, Math.min(1, ((x - x0) / (x1 - x0) + (y - y0) / (y1 - y0)) / 2));
-          for (let channel = 0; channel < 3; channel += 1) {
-            sum[channel] += plate.from[channel] + (plate.to[channel] - plate.from[channel]) * t;
-          }
-        }
-      }
-      if (!covered) continue;
-      const at = (py * size + px) * 4;
-      for (let channel = 0; channel < 3; channel += 1) pixels[at + channel] = Math.round(sum[channel] / covered);
-      pixels[at + 3] = Math.round((covered / (SAMPLES * SAMPLES)) * 255);
+  // Scanline coverage keeps supersampling quick even for the 300px store logo.
+  for (let row = 0; row < size * SAMPLES; row += 1) {
+    const y = ((row + 0.5) / SAMPLES - pad) * scale;
+    const intersections = [];
+    for (let index = 0; index < POINTS.length; index += 1) {
+      const [ax, ay] = POINTS[index];
+      const [bx, by] = POINTS[(index + 1) % POINTS.length];
+      if ((ay > y) !== (by > y)) intersections.push(ax + (y - ay) * (bx - ax) / (by - ay));
     }
+    intersections.sort((a, b) => a - b);
+    const offset = Math.floor(row / SAMPLES) * size;
+    for (let index = 0; index < intersections.length; index += 2) {
+      const start = Math.max(0, Math.ceil((intersections[index] / scale + pad) * SAMPLES - 0.5));
+      const end = Math.min(size * SAMPLES, Math.ceil((intersections[index + 1] / scale + pad) * SAMPLES - 0.5));
+      for (let column = start; column < end; column += 1) {
+        coverage[offset + Math.floor(column / SAMPLES)] += 1;
+      }
+    }
+  }
+  for (let index = 0; index < coverage.length; index += 1) {
+    if (!coverage[index]) continue;
+    pixels.set(color, index * 4);
+    pixels[index * 4 + 3] = Math.round(coverage[index] / (SAMPLES * SAMPLES) * 255);
   }
   return pixels;
 }
@@ -145,23 +136,11 @@ export function encodePng(size, pixels) {
 }
 
 export function svg(state = "") {
-  const number = (value) => +value.toFixed(3);
-  const names = ["bottom", "middle", "top"];
-  const layers = plates(state);
-  const gradients = layers.map(({ colors: [from, to] }, index) => `    <linearGradient id="${names[index]}" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="${from}"/>
-      <stop offset="1" stop-color="${to}"/>
-    </linearGradient>`);
-  const polygons = layers.map(({ points, radius }, index) => {
-    const list = points.map(([x, y]) => `${number(x)},${number(y)}`).join(" ");
-    const paint = `url(#${names[index]})`;
-    return `  <polygon points="${list}" fill="${paint}" stroke="${paint}" stroke-width="${radius * 2}" stroke-linejoin="round"/>`;
-  });
+  const path = OUTLINE.map(([command, ...args]) => command === "A"
+    ? `A${args[0]} ${args[0]} 0 0 ${args[1]} ${args[2]} ${args[3]}`
+    : `${command}${args.join(" ")}`).join(" ");
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GRID} ${GRID}">
-  <defs>
-${gradients.join("\n")}
-  </defs>
-${polygons.join("\n")}
+  <path fill="${PALETTES[state]}" d="${path}"/>
 </svg>
 `;
 }
@@ -174,7 +153,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   let count = 0;
   for (const state of Object.keys(PALETTES)) {
     for (const size of [16, 32, 48, 128]) {
-      // The store asks for 96px of artwork inside the 128px icon.
+      // Reserve a 16px transparent margin around the drawing area at store size.
       const pad = size === 128 ? 16 : 0;
       writeFileSync(join(icons, `lepidox${state}-${size}.png`), encodePng(size, render(size, state, pad)));
       count += 1;

@@ -1,5 +1,7 @@
 # Lepidox
 
+<img src="assets/icons/lepidox.svg" width="72" height="72" alt="Lepidox logo">
+
 **Rotates your dashboards on a timer. For wall screens, war rooms and NOCs.**
 
 Lepidox is an extension for Chrome and Microsoft Edge. You give it a list of dashboards; it shows one after the other and loads the next one in advance.
@@ -94,9 +96,11 @@ How the pieces fit together is described in [docs/architecture.md](docs/architec
 
 Lepidox is named after lepidocrocite, γ-FeO(OH), the iron oxide-hydroxide that forms in rust: *lepid-* from the mineral, *-ox* from oxide.
 
-Lepidocrocite crystallises in thin plates, and that is the logo: three plates in a spiral, each turned one step further than the one below, going from steel to rust to the plate on display. They are also the three tabs Lepidox keeps loaded. In the toolbar the top plate is green while rotating, amber when paused, red when something needs attention and grey when stopped.
+The logo is a screen outline that ends in a clockwise arrow: dashboards in continuous rotation. Its flat copper colour refers to iron oxidation and, indirectly, Rust. A single shape with an open centre keeps it readable at toolbar size.
 
-`npm run icons` draws the mark and writes every icon; the script has no dependencies.
+In the toolbar the mark is green while rotating, amber when paused, red when something needs attention and grey when stopped. The popup, options page and store logo use copper.
+
+`npm run icons` draws the SVG and every PNG from the same outline; the script has no dependencies. Open [the brand preview](docs/brand.html) to see the logo on light and dark backgrounds, at actual icon sizes and in each toolbar state.
 
 ## License
 

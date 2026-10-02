@@ -1,0 +1,84 @@
+<!doctype html>
+<!-- Copyright (c) 2026 Adriel Teles; SPDX-License-Identifier: MPL-2.0 -->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lepidox — identidade visual</title>
+  <link rel="icon" href="../assets/icons/lepidox-32.png">
+  <style>
+    :root { color-scheme: light; font-family: "Segoe UI", system-ui, sans-serif; color: #292622; background: #f5f2ed; }
+    * { box-sizing: border-box; }
+    body { max-width: 1120px; margin: 0 auto; padding: 42px 40px; }
+    header { display: flex; justify-content: space-between; align-items: center; gap: 24px; margin-bottom: 28px; }
+    .eyebrow { margin: 0; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; }
+    header span { font-size: 12px; color: #776c64; }
+    .hero { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #dfd9d1; border-radius: 18px; overflow: hidden; }
+    .panel { min-height: 300px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: #fffdfa; }
+    .panel.dark { color: #f8fafc; background: #0b1220; }
+    .panel img { width: 112px; height: 112px; }
+    .panel strong { font-size: 40px; font-weight: 650; letter-spacing: -1.5px; line-height: 1; }
+    .panel small { font-size: 12px; color: #82766c; }
+    .panel.dark small { color: #94a3b8; }
+    .story { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; padding: 28px 0; }
+    h1 { font-size: 25px; line-height: 1.3; font-weight: 600; letter-spacing: -.6px; margin: 0 0 9px; }
+    p { font-size: 14px; line-height: 1.65; margin: 0; color: #74685e; }
+    .origin { border-left: 2px solid #c4623c; padding-left: 22px; }
+    .origin strong { color: #51463e; font-weight: 600; }
+    .details { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .card { background: #fffdfa; border: 1px solid #dfd9d1; border-radius: 12px; padding: 20px 24px; }
+    h2 { margin: 0 0 24px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.4px; color: #82766c; }
+    .samples { display: flex; gap: 26px; align-items: flex-end; min-height: 72px; }
+    figure { margin: 0; display: flex; align-items: center; flex-direction: column; gap: 12px; }
+    figcaption { font-size: 11px; color: #82766c; }
+    .states { justify-content: space-between; gap: 10px; }
+    .states img { width: 32px; height: 32px; }
+    .toolbar { display: flex; align-items: center; gap: 14px; margin-top: 22px; padding: 12px 16px; border-radius: 7px; background: #0b1220; color: #94a3b8; }
+    .toolbar span { margin-right: auto; font-size: 11px; }
+    footer { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding-top: 24px; font-size: 11px; color: #82766c; }
+    footer a { color: #9c4e30; text-underline-offset: 3px; }
+    .swatch { display: inline-block; width: 11px; height: 11px; background: #c4623c; border-radius: 3px; margin-right: 8px; vertical-align: -1px; }
+    @media (max-width: 680px) {
+      body { padding: 24px 20px; } header { align-items: flex-start; } header span { text-align: right; }
+      .hero, .story, .details { grid-template-columns: 1fr; } .story { gap: 20px; }
+      .panel { min-height: 250px; } footer { flex-wrap: wrap; } .samples { gap: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <header><p class="eyebrow">Lepidox / identidade visual</p><span>Rotação inteligente de dashboards</span></header>
+  <main>
+    <div class="hero" aria-label="Logo em fundos claro e escuro">
+      <div class="panel"><img src="../assets/icons/lepidox.svg" alt="Contorno de uma tela formando uma seta no sentido horário"><strong>Lepidox</strong><small>Suas telas, em sequência.</small></div>
+      <div class="panel dark"><img src="../assets/icons/lepidox.svg" alt="Logo Lepidox sobre fundo escuro"><strong>Lepidox</strong><small>Suas telas, em sequência.</small></div>
+    </div>
+    <section class="story">
+      <div><h1>Uma tela. Um ciclo contínuo.</h1><p>O contorno da tela termina em uma seta: a próxima dashboard entra em cena. Uma forma simples, de traço espesso, que acompanha a extensão até na barra do navegador.</p></div>
+      <div class="origin"><p><strong>Lepidocrocita → ferro → ferrugem → Rust.</strong><br>O cobre remete à oxidação e à origem do nome. O símbolo mostra o que o produto faz; a cor conta de onde ele veio.</p></div>
+    </section>
+    <div class="details">
+      <section class="card">
+        <h2>Tamanhos reais</h2>
+        <div class="samples">
+          <figure><img src="../assets/icons/lepidox-16.png" width="16" height="16" alt="Logo em 16 pixels"><figcaption>16 px</figcaption></figure>
+          <figure><img src="../assets/icons/lepidox-32.png" width="32" height="32" alt="Logo em 32 pixels"><figcaption>32 px</figcaption></figure>
+          <figure><img src="../assets/icons/lepidox-48.png" width="48" height="48" alt="Logo em 48 pixels"><figcaption>48 px</figcaption></figure>
+          <figure><img src="../assets/icons/lepidox.svg" width="64" height="64" alt="Logo vetorial em 64 pixels"><figcaption>SVG</figcaption></figure>
+        </div>
+        <div class="toolbar"><span>Fundo escuro · 16 px</span><img src="../assets/icons/lepidox-16.png" width="16" height="16" alt="Marca"><img src="../assets/icons/lepidox-active-16.png" width="16" height="16" alt="Em rotação"><img src="../assets/icons/lepidox-paused-16.png" width="16" height="16" alt="Pausado"><img src="../assets/icons/lepidox-error-16.png" width="16" height="16" alt="Atenção"><img src="../assets/icons/lepidox-inactive-16.png" width="16" height="16" alt="Parado"></div>
+      </section>
+      <section class="card">
+        <h2>Estados na extensão</h2>
+        <div class="samples states">
+          <figure><img src="../assets/icons/lepidox-inactive-32.png" alt="Ícone cinza"><figcaption>Parado</figcaption></figure>
+          <figure><img src="../assets/icons/lepidox-active-32.png" alt="Ícone verde"><figcaption>Em rotação</figcaption></figure>
+          <figure><img src="../assets/icons/lepidox-paused-32.png" alt="Ícone âmbar"><figcaption>Pausado</figcaption></figure>
+          <figure><img src="../assets/icons/lepidox-error-32.png" alt="Ícone vermelho"><figcaption>Atenção</figcaption></figure>
+        </div>
+        <p style="font-size:12px;margin-top:24px">A mesma silhueta em todos os estados. A cor acompanha a situação da rotação.</p>
+      </section>
+    </div>
+  </main>
+  <footer><span><i class="swatch"></i>Cobre / #C4623C</span><span><a href="../assets/icons/lepidox.svg">SVG original</a> · <a href="../store/logo-300.png">PNG transparente</a></span></footer>
+</body>
+</html>

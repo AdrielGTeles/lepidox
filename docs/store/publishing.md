@@ -27,6 +27,8 @@ Tudo está em [`store/`](../../store):
 | `promo-small-440x280.png` | Bloco promocional pequeno (Chrome e Edge) |
 | `logo-300.png` | Logotipo da loja no Edge (gerado por `npm run icons`) |
 
+Para refazer as capturas e o bloco promocional com a logo atual, execute `node scripts/store-screenshots.mjs`. O script abre a extensão em um navegador sem janela e usa dados de demonstração, em português e inglês. Ele requer a ferramenta de desenvolvimento externa `playwright-core`; se ela estiver em outra pasta, defina `PLAYWRIGHT_MODULE` com o caminho de seu arquivo `index.mjs`. No Windows, usa o Edge instalado; `LEPIDOX_BROWSER_CHANNEL` permite escolher outro Chromium com suporte a extensões. `LEPIDOX_STORE_OUT` permite gravar uma prévia em outra pasta. Essas ferramentas não fazem parte do pacote da extensão.
+
 O ícone 128×128 da Chrome Web Store já vai dentro do pacote.
 
 Os textos da ficha (descrição, justificativas de permissão, instruções para o revisor) estão em [listing.md](listing.md), em inglês e português.

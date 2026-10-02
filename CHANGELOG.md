@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Simplified the logo to a screen outline ending in a clockwise arrow, in flat copper inspired by the name's iron-oxide origin. Updated extension icons, toolbar states and store artwork, with a shared SVG/PNG source and a brand preview.
+
 ## 1.1.0 - 2026-10-02
 
 First release prepared for the Chrome Web Store and Microsoft Edge Add-ons.
