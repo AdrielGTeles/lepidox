@@ -1,84 +1,78 @@
 <!doctype html>
-<html lang="pt-BR">
+<html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Lepidox</title>
+  <link rel="stylesheet" href="../ui/base.css">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <main class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <span class="brandMark" aria-hidden="true"></span>
-        <div>
-          <p class="eyebrow">SMART DASHBOARD ROTATOR</p>
-          <h1>Lepidox<span>.</span></h1>
-        </div>
-      </div>
-      <button id="openOptions" class="iconButton" title="Abrir configurações" aria-label="Abrir configurações">
-        <span class="gear" aria-hidden="true"></span>
-      </button>
-    </header>
+  <header class="topbar">
+    <div class="brand">
+      <img src="../../assets/icons/lepidox.svg" width="28" height="28" alt="">
+      <span>Lepidox</span>
+    </div>
+    <button id="openOptions" type="button" class="button buttonGhost buttonSmall" data-i18n="manageLists"></button>
+  </header>
 
-    <section id="session" class="panel sessionPanel hidden">
-      <div class="sessionHead">
-        <div>
-          <div class="statusLine">
-            <span id="sessionDot" class="statusDot"></span>
-            <span id="statusBadge" class="statusText">Rotacionando</span>
-          </div>
-          <h2 id="activeListName">—</h2>
-        </div>
-        <span id="counter" class="counter">—</span>
+  <main>
+    <section id="session" class="panel session hidden">
+      <div class="sessionTop">
+        <span id="statusPill" class="pill"></span>
+        <span id="counter" class="counter"></span>
       </div>
 
-      <div class="nowPlaying">
-        <p class="sectionLabel">TELA ATUAL</p>
-        <div class="nowPlayingRow">
-          <strong id="currentScreen">—</strong>
-          <span id="countdown" class="countdown">—</span>
-        </div>
-        <div class="progressTrack"><span id="progressBar"></span></div>
-      </div>
+      <h1 id="currentScreen" class="sessionTitle"></h1>
+      <p id="activeListName" class="sessionList"></p>
 
-      <div class="controls" aria-label="Controles de rotação">
-        <button id="previous" class="controlButton" title="Anterior">←</button>
-        <button id="pauseResume" class="button buttonPrimary">Pausar</button>
-        <button id="next" class="controlButton" title="Próxima">→</button>
+      <div class="timer">
+        <span id="timerLabel" class="timerLabel"></span>
+        <span id="countdown" class="timerValue"></span>
       </div>
+      <div id="progress" class="progress"><div id="progressBar" class="progressBar"></div></div>
 
-      <div class="quickSwitch">
-        <div class="quickSwitchHead">
-          <span class="sectionLabel">IR PARA TELA</span>
-          <span id="poolInfo" class="mutedSmall"></span>
-        </div>
-        <input id="screenSearch" type="search" placeholder="Buscar por nome, título ou URL" autocomplete="off">
-        <div id="screenList" class="screenList"></div>
+      <p id="sessionAlert" class="alert hidden" role="alert"></p>
+
+      <div class="controls">
+        <button id="previous" type="button" class="button buttonGhost buttonIcon" data-icon="previous"></button>
+        <button id="pauseResume" type="button" class="button buttonPrimary"></button>
+        <button id="next" type="button" class="button buttonGhost buttonIcon" data-icon="next"></button>
+        <button id="stop" type="button" class="button buttonGhost dangerHover" data-icon="stop" data-i18n="stop"></button>
       </div>
-
-      <p id="runtimeError" class="runtimeAlert hidden"></p>
-      <button id="stop" class="button buttonDanger wide">Encerrar lista</button>
     </section>
 
-    <section class="panel listsPanel">
+    <section id="screens" class="section hidden">
       <div class="sectionHead">
-        <div>
-          <p class="sectionLabel">LISTAS</p>
-          <h2>Ambientes salvos</h2>
-        </div>
-        <button id="manageLists" class="button buttonQuiet">Gerenciar</button>
+        <h2 data-i18n="screens"></h2>
+        <input id="screenSearch" type="search" class="input searchInput hidden" autocomplete="off"
+          data-i18n-attr="placeholder:searchScreens,aria-label:searchScreens">
       </div>
-      <div id="lists" class="lists"></div>
-      <div id="empty" class="emptyState hidden">
-        <strong>Nenhuma lista configurada</strong>
-        <span>Crie uma lista de dashboards para começar.</span>
-      </div>
+      <ol id="screenList" class="screenList"></ol>
     </section>
 
-    <p id="message" class="toast hidden"></p>
-    <footer>Open source · MPL-2.0</footer>
+    <section id="lists" class="section hidden">
+      <div class="sectionHead">
+        <h2 data-i18n="yourLists"></h2>
+        <button id="newList" type="button" class="button buttonGhost buttonSmall" data-icon="plus" data-i18n="newList"></button>
+      </div>
+      <ul id="listItems" class="listItems"></ul>
+    </section>
+
+    <details id="switchList" class="switchList hidden">
+      <summary data-i18n="switchList"></summary>
+      <ul id="otherListItems" class="listItems"></ul>
+    </details>
+
+    <section id="empty" class="empty hidden">
+      <strong data-i18n="emptyTitle"></strong>
+      <span data-i18n="emptyPopupHint"></span>
+      <button id="createFromTabs" type="button" class="button buttonPrimary buttonBlock" data-icon="tabs" data-i18n="createFromTabs"></button>
+      <button id="createManually" type="button" class="button buttonGhost buttonBlock" data-i18n="createManually"></button>
+    </section>
   </main>
+
+  <div id="toasts" class="toasts" aria-live="polite"></div>
   <script type="module" src="popup.js"></script>
 </body>
 </html>

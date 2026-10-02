@@ -1,87 +1,65 @@
+// Copyright (c) 2026 Adriel Teles
 // SPDX-License-Identifier: MPL-2.0
 
-import {
-  DEFAULT_INVESTIGATION_POOL_SIZE,
-  DEFAULT_ROTATION_SECONDS,
-  MAX_INVESTIGATION_POOL_SIZE,
-  MIN_ROTATION_SECONDS,
-  STORAGE_KEYS
-} from "./constants.js";
+import { STORAGE_KEYS } from "./constants.js";
+import { createList } from "./lists.js";
 
-function uuid() {
-  return crypto.randomUUID();
-}
-
-function normalizeDuration(value, fallback = DEFAULT_ROTATION_SECONDS, allowNull = false) {
-  if (allowNull && (value === null || value === undefined || value === "")) return null;
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed)) return fallback;
-  return Math.max(MIN_ROTATION_SECONDS, Math.round(parsed));
-}
-
-function normalizeScreen(screen = {}, index = 0) {
-  const generatedAlphaName = /^Tela\s+\d+$/i.test(String(screen.name ?? "").trim());
-  return {
-    id: screen.id || uuid(),
-    name: generatedAlphaName ? "" : String(screen.name ?? "").trim(),
-    resolvedTitle: String(screen.resolvedTitle ?? "").trim(),
-    url: String(screen.url ?? "").trim(),
-    duration: normalizeDuration(screen.duration, null, true),
-    enabled: screen.enabled !== false,
-    lastStatus: screen.lastStatus || "cold",
-    lastSeenAt: Number(screen.lastSeenAt) || null,
-    finalUrl: String(screen.finalUrl ?? "").trim(),
-    order: Number.isFinite(Number(screen.order)) ? Number(screen.order) : index
-  };
-}
-
-export function normalizeList(list = {}, index = 0) {
-  const pool = Math.min(
-    MAX_INVESTIGATION_POOL_SIZE,
-    Math.max(3, Number(list.investigationPoolSize) || DEFAULT_INVESTIGATION_POOL_SIZE)
-  );
-  const defaultDuration = normalizeDuration(list.defaultDuration);
-  const isAlphaSchema = list.investigationPoolSize === undefined && list.autoResume === undefined;
-  const screens = Array.isArray(list.screens)
-    ? list.screens.map((screen, screenIndex) => {
-        const normalized = normalizeScreen(screen, screenIndex);
-        // v0.1 copied the list duration into every screen, making later list-level
-        // changes look ignored. In 1.0 those legacy values become inherited.
-        if (isAlphaSchema) normalized.duration = null;
-        return normalized;
-      })
-    : [];
-
-  return {
-    id: list.id || uuid(),
-    name: String(list.name ?? `Lista ${index + 1}`).trim() || `Lista ${index + 1}`,
-    defaultDuration,
-    investigationPoolSize: pool % 2 === 0 ? Math.min(MAX_INVESTIGATION_POOL_SIZE, pool + 1) : pool,
-    autoResume: Boolean(list.autoResume),
-    screens
-  };
-}
+// Lists hold only what the user configured. What Lepidox observes about a screen
+// (page title, last status) lives under SCREEN_META so the service worker never
+// has to rewrite a list the options page may be editing.
 
 export async function getLists() {
   const result = await chrome.storage.local.get(STORAGE_KEYS.LISTS);
   const raw = Array.isArray(result[STORAGE_KEYS.LISTS]) ? result[STORAGE_KEYS.LISTS] : [];
-  return raw.map(normalizeList);
+  return raw.map(createList);
 }
 
 export async function saveLists(lists) {
-  const normalized = (Array.isArray(lists) ? lists : []).map(normalizeList);
+  const normalized = (Array.isArray(lists) ? lists : []).map(createList);
   await chrome.storage.local.set({ [STORAGE_KEYS.LISTS]: normalized });
   return normalized;
 }
 
-export async function updateScreenMetadata(listId, screenId, patch) {
-  const lists = await getLists();
-  const list = lists.find((item) => item.id === listId);
-  if (!list) return;
-  const screen = list.screens.find((item) => item.id === screenId);
-  if (!screen) return;
-  Object.assign(screen, patch);
-  await saveLists(lists);
+export async function getScreenMeta() {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.SCREEN_META);
+  const meta = result[STORAGE_KEYS.SCREEN_META];
+  return meta && typeof meta === "object" ? meta : {};
+}
+
+let metaQueue = Promise.resolve();
+
+function updateScreenMeta(mutate) {
+  const run = metaQueue.then(async () => {
+    const meta = await getScreenMeta();
+    if (mutate(meta) === false) return;
+    await chrome.storage.local.set({ [STORAGE_KEYS.SCREEN_META]: meta });
+  });
+  metaQueue = run.catch(() => {});
+  return run;
+}
+
+// patches: { [screenId]: { title?, status?, finalUrl? } }
+export function patchScreenMeta(patches) {
+  return updateScreenMeta((meta) => {
+    let changed = false;
+    for (const [screenId, patch] of Object.entries(patches)) {
+      const current = meta[screenId] ?? {};
+      const differs = Object.entries(patch).some(([key, value]) => current[key] !== value);
+      if (!differs) continue;
+      meta[screenId] = { ...current, ...patch, seenAt: Date.now() };
+      changed = true;
+    }
+    return changed;
+  });
+}
+
+export function pruneScreenMeta(lists) {
+  const known = new Set(lists.flatMap((list) => list.screens.map((screen) => screen.id)));
+  return updateScreenMeta((meta) => {
+    const stale = Object.keys(meta).filter((screenId) => !known.has(screenId));
+    stale.forEach((screenId) => delete meta[screenId]);
+    return stale.length > 0;
+  });
 }
 
 export async function getRuntime() {
@@ -108,4 +86,27 @@ export async function saveRecovery(recovery) {
   } else {
     await chrome.storage.local.remove(STORAGE_KEYS.RECOVERY);
   }
+}
+
+// 1.0 kept resolvedTitle/lastStatus inside each screen. Move them to SCREEN_META
+// and rewrite the lists in the current schema.
+export async function migrateStorage() {
+  const result = await chrome.storage.local.get(STORAGE_KEYS.LISTS);
+  const raw = result[STORAGE_KEYS.LISTS];
+  if (!Array.isArray(raw)) return;
+
+  const patches = {};
+  for (const list of raw) {
+    for (const screen of list?.screens ?? []) {
+      if (!screen?.id || (!screen.resolvedTitle && !screen.lastStatus)) continue;
+      patches[screen.id] = {
+        title: String(screen.resolvedTitle ?? ""),
+        status: screen.lastStatus || "cold",
+        finalUrl: String(screen.finalUrl ?? "")
+      };
+    }
+  }
+
+  if (Object.keys(patches).length) await patchScreenMeta(patches);
+  await saveLists(raw);
 }

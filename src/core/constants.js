@@ -1,9 +1,12 @@
+// Copyright (c) 2026 Adriel Teles
 // SPDX-License-Identifier: MPL-2.0
 
 export const STORAGE_KEYS = {
   LISTS: "lepidoxLists",
+  SCREEN_META: "lepidoxScreenMeta",
   RUNTIME: "lepidoxRuntime",
-  RECOVERY: "lepidoxRecovery"
+  RECOVERY: "lepidoxRecovery",
+  OPTIONS_INTENT: "lepidoxOptionsIntent"
 };
 
 export const ALARM_NAME = "lepidox:rotate";
@@ -13,14 +16,13 @@ export const FAST_TIMER_THRESHOLD_MS = 30_000;
 export const LOAD_TIMEOUT_MS = 45_000;
 export const PREFLIGHT_TIMEOUT_MS = 20_000;
 export const NORMAL_POOL_SIZE = 3;
+export const INVESTIGATION_POOL_SIZES = [3, 5, 7];
 export const DEFAULT_INVESTIGATION_POOL_SIZE = 5;
-export const MAX_INVESTIGATION_POOL_SIZE = 7;
 
 export const SCREEN_STATUS = {
   COLD: "cold",
   LOADING: "loading",
   READY: "ready",
-  ACTIVE: "active",
   AUTH: "auth",
   ERROR: "error"
 };
@@ -34,6 +36,5 @@ export const MESSAGE = {
   NEXT: "NEXT",
   PREVIOUS: "PREVIOUS",
   JUMP_TO: "JUMP_TO",
-  PREFLIGHT_LIST: "PREFLIGHT_LIST",
-  REFRESH_STATE: "REFRESH_STATE"
+  PREFLIGHT_LIST: "PREFLIGHT_LIST"
 };

@@ -1,179 +1,174 @@
 <!doctype html>
-<html lang="pt-BR">
+<html>
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Lepidox · Configurações</title>
+  <title>Lepidox</title>
+  <link rel="icon" href="../../assets/icons/lepidox-32.png">
+  <link rel="stylesheet" href="../ui/base.css">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
-  <a class="skipLink" href="#lists">Pular para listas</a>
-  <header class="pageHeader">
-    <div class="brandBlock">
-      <div class="brandRow">
-        <span class="brandMark" aria-hidden="true"></span>
-        <p class="eyebrow">SMART DASHBOARD ROTATOR</p>
+  <header class="siteHeader">
+    <div class="siteHeaderInner">
+      <div class="brand">
+        <img src="../../assets/icons/lepidox.svg" width="34" height="34" alt="">
+        <div>
+          <strong>Lepidox</strong>
+          <small data-i18n="tagline"></small>
+        </div>
       </div>
-      <h1>Lepidox<span>.</span></h1>
-      <p class="subtitle">Listas, rotação, investigação e memória inteligente para dashboards.</p>
-    </div>
-    <div class="headerCard">
-      <div class="headerCardTop">
-        <span class="liveIndicator"></span>
-        <span>LEPIDOX 1.0.0</span>
-      </div>
-      <strong id="listCount">0 listas</strong>
-      <span id="screenCount">0 telas configuradas</span>
+      <span id="sessionChip" class="pill hidden"></span>
     </div>
   </header>
 
-  <main>
-    <section class="panel toolbarPanel">
-      <div class="toolbarCopy">
-        <p class="sectionLabel">CONFIGURAÇÃO</p>
-        <h2>Listas de telas</h2>
-        <p>Nomeie cada tela ou deixe o campo vazio para o Lepidox usar automaticamente o título da página carregada.</p>
+  <main class="container">
+    <div class="pageHead">
+      <div>
+        <h1 data-i18n="optionsTitle"></h1>
+        <p data-i18n="optionsSubtitle"></p>
       </div>
-      <div class="toolbarActions">
-        <button id="importLists" class="button buttonQuiet">Importar</button>
-        <button id="exportLists" class="button buttonSecondary">Exportar</button>
-        <button id="newList" class="button buttonPrimary">+ Nova lista</button>
+      <div class="pageActions">
+        <button id="importLists" type="button" class="button buttonGhost" data-icon="upload" data-i18n="import"></button>
+        <button id="exportLists" type="button" class="button buttonGhost" data-icon="download" data-i18n="export"></button>
         <input id="importFile" type="file" accept="application/json,.json" hidden>
       </div>
-    </section>
+    </div>
 
-    <section class="infoStrip">
-      <div><span class="infoDot green"></span><strong>Privacidade</strong><span>Sem credenciais, cookies ou telemetria.</span></div>
-      <div><span class="infoDot blue"></span><strong>Memória</strong><span>3 telas quentes; investigação expande temporariamente.</span></div>
-      <div><span class="infoDot yellow"></span><strong>Intervalos</strong><span>Mínimo de 5s com scheduler híbrido.</span></div>
-    </section>
+    <div class="workspace">
+      <aside class="panel sidebar">
+        <div class="panelTitle">
+          <h2 data-i18n="lists"></h2>
+          <button id="newList" type="button" class="button buttonPrimary buttonSmall" data-icon="plus" data-i18n="newList"></button>
+        </div>
+        <ul id="listNav" class="listNav"></ul>
+      </aside>
 
-    <section id="lists" class="lists"></section>
+      <section id="welcome" class="panel welcome hidden">
+        <div class="empty">
+          <strong data-i18n="emptyTitle"></strong>
+          <span data-i18n="emptyOptionsHint"></span>
+          <button id="welcomeFromTabs" type="button" class="button buttonPrimary" data-icon="tabs" data-i18n="createFromTabs"></button>
+          <button id="welcomeNew" type="button" class="button buttonGhost" data-i18n="createManually"></button>
+        </div>
+      </section>
 
-    <section id="empty" class="emptyState" hidden>
-      <span class="emptyMark" aria-hidden="true"></span>
-      <h2>Nenhuma lista configurada</h2>
-      <p>Crie sua primeira lista para organizar os dashboards da war room.</p>
-      <button class="button buttonPrimary" data-create-list>+ Nova lista</button>
-    </section>
+      <section id="editor" class="panel editor hidden">
+        <div class="editorHead">
+          <label class="field editorName">
+            <span class="fieldLabel" data-i18n="listName"></span>
+            <input id="listName" class="input" maxlength="80" autocomplete="off">
+          </label>
+          <label class="field editorDuration">
+            <span class="fieldLabel" data-i18n="timePerScreen"></span>
+            <span class="inputSuffix">
+              <input id="defaultDuration" class="input" type="number" min="5" step="1" inputmode="numeric">
+              <span data-i18n="secondsUnit"></span>
+            </span>
+          </label>
+          <button id="startStop" type="button" class="button buttonPrimary"></button>
+        </div>
+        <p id="listSummary" class="help"></p>
 
-    <section class="panel shortcutsPanel">
-      <div>
-        <p class="sectionLabel">ATALHOS</p>
-        <h2>Controle durante a investigação</h2>
+        <div class="screensHead">
+          <h2><span data-i18n="screens"></span><span id="screenCount" class="countBadge"></span></h2>
+          <div class="screensActions">
+            <button id="addTabs" type="button" class="button buttonGhost buttonSmall" data-icon="tabs" data-i18n="addOpenTabs"></button>
+            <button id="preflight" type="button" class="button buttonGhost buttonSmall" data-icon="shield" data-i18n="checkAccess"
+              data-i18n-attr="title:checkAccessHelp"></button>
+          </div>
+        </div>
+
+        <div class="screenColumns" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span data-i18n="colUrl"></span>
+          <span data-i18n="colName"></span>
+          <span data-i18n="colTime"></span>
+          <span data-i18n="colOn"></span>
+          <span></span>
+        </div>
+        <ol id="screenRows" class="screenRows"></ol>
+        <button id="addScreen" type="button" class="button buttonGhost addScreen" data-icon="plus" data-i18n="addScreen"></button>
+        <p class="help" data-i18n="screensHint"></p>
+
+        <details class="advanced">
+          <summary data-i18n="advanced"></summary>
+          <div class="option">
+            <div>
+              <strong id="poolSizeLabel" data-i18n="pausePreload"></strong>
+              <p class="help" data-i18n="pausePreloadHelp"></p>
+            </div>
+            <div id="poolSize" class="segmented" role="radiogroup" aria-labelledby="poolSizeLabel"></div>
+          </div>
+          <div class="option">
+            <div>
+              <strong id="autoResumeLabel" data-i18n="autoResume"></strong>
+              <p class="help" data-i18n="autoResumeHelp"></p>
+            </div>
+            <label class="switch">
+              <input id="autoResume" type="checkbox" aria-labelledby="autoResumeLabel">
+              <span class="switchTrack"></span>
+            </label>
+          </div>
+        </details>
+
+        <div class="editorFoot">
+          <span id="saveStatus" class="help" aria-live="polite"></span>
+          <div class="editorFootActions">
+            <button id="duplicateList" type="button" class="button buttonGhost buttonSmall" data-icon="copy" data-i18n="duplicate"></button>
+            <button id="deleteList" type="button" class="button buttonGhost buttonSmall dangerHover" data-icon="trash" data-i18n="deleteList"></button>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel shortcuts">
+      <div class="panelTitle">
+        <div>
+          <h2 data-i18n="shortcuts"></h2>
+          <p class="help" data-i18n="shortcutsHelp"></p>
+        </div>
+        <button id="editShortcuts" type="button" class="button buttonGhost buttonSmall" data-i18n="editShortcuts"></button>
       </div>
-      <div class="shortcutGrid">
-        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>Space</kbd><small>Pausar / continuar</small></div>
-        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>→</kbd><small>Próxima tela</small></div>
-        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>←</kbd><small>Tela anterior</small></div>
-        <div><kbd>Ctrl</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>X</kbd><small>Encerrar lista</small></div>
-      </div>
-      <p class="shortcutHint">Os atalhos podem ser personalizados em <code>chrome://extensions/shortcuts</code> ou <code>edge://extensions/shortcuts</code>.</p>
+      <dl id="shortcutList" class="shortcutList"></dl>
     </section>
   </main>
 
-  <template id="listTemplate">
-    <article class="panel listCard">
-      <div class="listHeader">
-        <div class="listIdentity">
-          <span class="listIndex">01</span>
-          <div>
-            <p class="sectionLabel">LISTA</p>
-            <h2 class="listTitle">Nova lista</h2>
-            <p class="listSummary">0 telas</p>
-          </div>
-        </div>
-        <div class="listHeaderActions">
-          <button class="button buttonQuiet preflight">Verificar acessos</button>
-          <button class="button buttonDanger deleteList">Excluir</button>
-        </div>
-      </div>
+  <footer class="siteFooter">
+    <span id="versionLabel"></span>
+    <span aria-hidden="true">·</span>
+    <span data-i18n="footerPrivacy"></span>
+    <span aria-hidden="true">·</span>
+    <a id="sourceLink" target="_blank" rel="noopener" data-i18n="footerSource"></a>
+    <span aria-hidden="true">·</span>
+    <a id="privacyLink" target="_blank" rel="noopener" data-i18n="footerPrivacyPolicy"></a>
+  </footer>
 
-      <div class="settingsGrid">
-        <label class="field span2">
-          <span>Nome da lista</span>
-          <input class="listName" maxlength="80" placeholder="War Room Geral">
-        </label>
-        <label class="field">
-          <span>Rotação padrão</span>
-          <div class="inputSuffix"><input class="defaultDuration" type="number" min="5" step="1"><b>s</b></div>
-        </label>
-        <label class="field">
-          <span>Pool em investigação</span>
-          <select class="investigationPool">
-            <option value="3">3 telas</option>
-            <option value="5">5 telas</option>
-            <option value="7">7 telas</option>
-          </select>
-        </label>
-        <label class="switchField span2">
-          <div>
-            <strong>Retomar após reiniciar o navegador</strong>
-            <small>Reabre esta lista automaticamente se ela estava em execução antes do encerramento.</small>
-          </div>
-          <input class="autoResume" type="checkbox">
-          <span class="switchTrack"></span>
-        </label>
+  <dialog id="tabsDialog" class="dialog">
+    <form method="dialog">
+      <h2 data-i18n="addOpenTabs"></h2>
+      <p class="help" data-i18n="addOpenTabsHelp"></p>
+      <div id="tabChoices" class="tabChoices"></div>
+      <div class="dialogActions">
+        <button type="submit" value="cancel" class="button buttonGhost" data-i18n="cancel"></button>
+        <button id="confirmTabs" type="submit" value="confirm" class="button buttonPrimary"></button>
       </div>
+    </form>
+  </dialog>
 
-      <div class="screensHeader">
-        <div>
-          <p class="sectionLabel">TELAS</p>
-          <p class="screensHelp">Nome vazio = título automático da página. Duração vazia = duração padrão da lista.</p>
-        </div>
-        <button class="button buttonSecondary addScreen">+ Adicionar tela</button>
+  <dialog id="deleteDialog" class="dialog">
+    <form method="dialog">
+      <h2 data-i18n="deleteListTitle"></h2>
+      <p id="deleteMessage" class="help"></p>
+      <div class="dialogActions">
+        <button type="submit" value="cancel" class="button buttonGhost" data-i18n="cancel"></button>
+        <button type="submit" value="confirm" class="button buttonDanger" data-i18n="deleteList"></button>
       </div>
+    </form>
+  </dialog>
 
-      <div class="screenTableWrap">
-        <div class="screenTableHead">
-          <span>#</span><span>Estado</span><span>Nome</span><span>URL</span><span>Duração</span><span>Ativa</span><span></span>
-        </div>
-        <div class="screenRows"></div>
-      </div>
-
-      <div class="listFooter">
-        <span class="saveStatus"></span>
-        <button class="button buttonPrimary saveList">Salvar alterações</button>
-      </div>
-    </article>
-  </template>
-
-  <template id="screenTemplate">
-    <div class="screenRow">
-      <div class="screenOrder">
-        <span class="screenNumber">01</span>
-        <div class="reorderButtons">
-          <button class="moveUp" title="Mover para cima" aria-label="Mover para cima">↑</button>
-          <button class="moveDown" title="Mover para baixo" aria-label="Mover para baixo">↓</button>
-        </div>
-      </div>
-      <div class="statusCell">
-        <span class="screenStatusDot"></span>
-        <small class="screenStatusText">Nova</small>
-      </div>
-      <label class="compactField">
-        <span class="srOnly">Nome</span>
-        <input class="screenName" maxlength="120" placeholder="Automático pelo título">
-        <small class="resolvedTitle"></small>
-      </label>
-      <label class="compactField">
-        <span class="srOnly">URL</span>
-        <input class="screenUrl" type="url" placeholder="https://grafana.exemplo.com/d/...">
-      </label>
-      <label class="compactField durationField">
-        <span class="srOnly">Duração</span>
-        <input class="screenDuration" type="number" min="5" step="1" placeholder="Padrão">
-        <b>s</b>
-      </label>
-      <label class="rowSwitch" title="Incluir na rotação">
-        <input class="screenEnabled" type="checkbox" checked>
-        <span></span>
-      </label>
-      <button class="removeScreen" title="Remover tela" aria-label="Remover tela">×</button>
-    </div>
-  </template>
-
-  <div id="toast" class="toast" hidden></div>
+  <div id="toasts" class="toasts" aria-live="polite"></div>
   <script type="module" src="options.js"></script>
 </body>
 </html>

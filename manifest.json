@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Lepidox",
+  "name": "__MSG_extName__",
   "short_name": "Lepidox",
-  "version": "1.0.0",
-  "description": "Open-source smart dashboard rotator for war rooms, NOCs and monitoring environments.",
+  "version": "1.1.0",
+  "description": "__MSG_extDescription__",
+  "default_locale": "en",
+  "minimum_chrome_version": "120",
+  "homepage_url": "https://github.com/AdrielGTeles/lepidox",
   "permissions": [
     "tabs",
     "storage",
@@ -14,7 +17,7 @@
     "type": "module"
   },
   "action": {
-    "default_title": "Lepidox · Inativo",
+    "default_title": "__MSG_actionTitleInactive__",
     "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "assets/icons/lepidox-inactive-16.png",
@@ -35,20 +38,20 @@
   },
   "commands": {
     "toggle-pause": {
-      "suggested_key": { "default": "Ctrl+Shift+Space" },
-      "description": "Pausar ou continuar a rotação do Lepidox"
+      "suggested_key": { "default": "Alt+Shift+Space" },
+      "description": "__MSG_cmdTogglePause__"
     },
     "next-screen": {
-      "suggested_key": { "default": "Ctrl+Shift+Right" },
-      "description": "Ir para a próxima tela"
+      "suggested_key": { "default": "Alt+Shift+Right" },
+      "description": "__MSG_cmdNext__"
     },
     "previous-screen": {
-      "suggested_key": { "default": "Ctrl+Shift+Left" },
-      "description": "Voltar para a tela anterior"
+      "suggested_key": { "default": "Alt+Shift+Left" },
+      "description": "__MSG_cmdPrevious__"
     },
     "stop-rotation": {
-      "suggested_key": { "default": "Ctrl+Shift+X" },
-      "description": "Encerrar a lista ativa"
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "__MSG_cmdStop__"
     }
   }
 }
