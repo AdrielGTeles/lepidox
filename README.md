@@ -88,9 +88,15 @@ lepidox/
 └── docs/              architecture and store publishing notes
 ```
 
-The logo is a butterfly (the name comes from *Lepidoptera*) reduced to four angled screens, in white on a solid badge. `npm run icons` draws it and writes every icon; the script has no dependencies. The toolbar states are the same mark on a green, amber, red or grey badge.
-
 How the pieces fit together is described in [docs/architecture.md](docs/architecture.md). Publishing steps and listing texts are in [docs/store](docs/store).
+
+## The name and the logo
+
+Lepidox is named after lepidocrocite, γ-FeO(OH), the iron oxide-hydroxide that forms in rust: *lepid-* from the mineral, *-ox* from oxide.
+
+Lepidocrocite crystallises in thin plates, and that is the logo: three plates in a spiral, each turned one step further than the one below, going from steel to rust to the plate on display. They are also the three tabs Lepidox keeps loaded. In the toolbar the top plate is green while rotating, amber when paused, red when something needs attention and grey when stopped.
+
+`npm run icons` draws the mark and writes every icon; the script has no dependencies.
 
 ## License
 

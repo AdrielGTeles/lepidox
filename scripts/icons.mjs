@@ -6,8 +6,9 @@
 //   assets/icons/lepidox[-state]-<size>.png   extension and toolbar icons
 //   store/logo-300.png                        Microsoft Edge Add-ons logo
 //
-// The mark is a butterfly (the name comes from Lepidoptera) reduced to four
-// angled screens, in white on a solid badge. The badge colour is the state.
+// Lepidox is named after lepidocrocite, the iron oxide-hydroxide found in rust,
+// which crystallises in thin plates. The mark is three plates in a spiral, each
+// turned one step further than the one below: steel, rust, then the plate on display.
 // Usage: node scripts/icons.mjs
 
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -17,41 +18,50 @@ import { crc32, deflateSync } from "node:zlib";
 
 import { root } from "./validate.mjs";
 
-// Everything is drawn on a 16-unit square, so edges land on whole pixels at 16, 32 and 48.
+// Drawn on a 16-unit square so the top plate lands on whole pixels at 16, 32 and 48.
 const GRID = 16;
-const BADGE_RADIUS = 3.5;
-const WING_RADIUS = 0.55;
 const SAMPLES = 8;
 
-// Badge gradient per state, top-left to bottom-right.
-const BADGES = {
-  "": ["#2563eb", "#0891b2"],
-  "-active": ["#16a34a", "#15803d"],
-  "-paused": ["#d97706", "#b45309"],
-  "-error": ["#ef4444", "#b91c1c"],
-  "-inactive": ["#64748b", "#475569"]
+// One turn step is a 1:3 slope (18.43 degrees); two steps make a 3:4 slope.
+const STEP = Math.atan(1 / 3);
+
+// Bottom to top: [side, steps turned back from the top plate, corner radius].
+const PLATES = [
+  [11.4, 2, 2.1],
+  [10, 1, 1.9],
+  [8, 0, 1.6]
+];
+
+// Per state, bottom to top: each plate's gradient from its top-left to its bottom-right.
+const STEEL = ["#7b8ba1", "#5b6b82"];
+const PALETTES = {
+  "": [STEEL, ["#b7410e", "#8f2f0a"], ["#fb923c", "#ea580c"]],
+  "-active": [STEEL, ["#15803d", "#14532d"], ["#4ade80", "#16a34a"]],
+  "-paused": [STEEL, ["#b45309", "#78350f"], ["#fcd34d", "#f59e0b"]],
+  "-error": [STEEL, ["#b91c1c", "#7f1d1d"], ["#f87171", "#dc2626"]],
+  "-inactive": [["#475569", "#334155"], STEEL, ["#e2e8f0", "#a8b5c6"]]
 };
 
-// Clear space between the two halves, chosen so its edges fall on pixel boundaries.
-const GAPS = { 16: 2, 48: 4 / 3 };
-const DEFAULT_GAP = 1;
-
-// Corners are rounded by growing each polygon by WING_RADIUS, so the points
-// below sit that far inside the visible outline.
-function wings(gap) {
-  const inner = GRID / 2 - gap / 2 - WING_RADIUS;
-  const upper = [[inner, 7.45], [inner, 6.55], [2.55, 3.55], [2.55, 7.45]];
-  const lower = [[inner, 9.55], [3.55, 9.55], [4.6, 12.45], [inner, 10.45]];
-  const mirrored = (points) => points.map(([x, y]) => [GRID - x, y]);
-  return [upper, mirrored(upper), lower, mirrored(lower)];
+// Corners are rounded by growing each square by its radius, so the points
+// returned here sit that far inside the visible outline.
+function plates(state) {
+  return PLATES.map(([side, steps, radius], index) => {
+    const half = side / 2 - radius;
+    const angle = -steps * STEP;
+    const points = [[-half, -half], [half, -half], [half, half], [-half, half]].map(([x, y]) => [
+      GRID / 2 + x * Math.cos(angle) - y * Math.sin(angle),
+      GRID / 2 + x * Math.sin(angle) + y * Math.cos(angle)
+    ]);
+    const xs = points.map(([x]) => x);
+    const ys = points.map(([, y]) => y);
+    return {
+      points,
+      radius,
+      colors: PALETTES[state][index],
+      box: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)]
+    };
+  });
 }
-
-const badge = [
-  [BADGE_RADIUS, BADGE_RADIUS],
-  [GRID - BADGE_RADIUS, BADGE_RADIUS],
-  [GRID - BADGE_RADIUS, GRID - BADGE_RADIUS],
-  [BADGE_RADIUS, GRID - BADGE_RADIUS]
-];
 
 // True when (x, y) is inside the convex polygon or within `radius` of its outline.
 function insideRounded(points, radius, x, y) {
@@ -75,10 +85,11 @@ function insideRounded(points, radius, x, y) {
 
 const rgb = (hex) => [1, 3, 5].map((at) => parseInt(hex.slice(at, at + 2), 16));
 
-// Returns size x size RGBA pixels. `pad` keeps that many transparent pixels around the badge.
+// Returns size x size RGBA pixels. `pad` keeps that many transparent pixels around the mark.
 export function render(size, state = "", pad = 0) {
-  const [from, to] = BADGES[state].map(rgb);
-  const shapes = wings(GAPS[size] ?? DEFAULT_GAP);
+  const layers = plates(state)
+    .map(({ colors, ...plate }) => ({ ...plate, from: rgb(colors[0]), to: rgb(colors[1]) }))
+    .reverse(); // topmost first: the first plate hit is the one seen
   const scale = GRID / (size - 2 * pad);
   const pixels = Buffer.alloc(size * size * 4);
 
@@ -90,12 +101,13 @@ export function render(size, state = "", pad = 0) {
         for (let sx = 0; sx < SAMPLES; sx += 1) {
           const x = (px + (sx + 0.5) / SAMPLES - pad) * scale;
           const y = (py + (sy + 0.5) / SAMPLES - pad) * scale;
-          if (!insideRounded(badge, BADGE_RADIUS, x, y)) continue;
+          const plate = layers.find(({ points, radius }) => insideRounded(points, radius, x, y));
+          if (!plate) continue;
           covered += 1;
-          const white = shapes.some((points) => insideRounded(points, WING_RADIUS, x, y));
-          const t = (x + y) / (2 * GRID);
+          const [x0, y0, x1, y1] = plate.box;
+          const t = Math.max(0, Math.min(1, ((x - x0) / (x1 - x0) + (y - y0) / (y1 - y0)) / 2));
           for (let channel = 0; channel < 3; channel += 1) {
-            sum[channel] += white ? 255 : from[channel] + (to[channel] - from[channel]) * t;
+            sum[channel] += plate.from[channel] + (plate.to[channel] - plate.from[channel]) * t;
           }
         }
       }
@@ -133,21 +145,23 @@ export function encodePng(size, pixels) {
 }
 
 export function svg(state = "") {
-  const [from, to] = BADGES[state];
-  const polygons = wings(DEFAULT_GAP)
-    .map((points) => `    <polygon points="${points.map(([x, y]) => `${+x.toFixed(2)},${+y.toFixed(2)}`).join(" ")}"/>`)
-    .join("\n");
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GRID} ${GRID}">
-  <defs>
-    <linearGradient id="badge" x1="0" y1="0" x2="1" y2="1">
+  const number = (value) => +value.toFixed(3);
+  const names = ["bottom", "middle", "top"];
+  const layers = plates(state);
+  const gradients = layers.map(({ colors: [from, to] }, index) => `    <linearGradient id="${names[index]}" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="${from}"/>
       <stop offset="1" stop-color="${to}"/>
-    </linearGradient>
+    </linearGradient>`);
+  const polygons = layers.map(({ points, radius }, index) => {
+    const list = points.map(([x, y]) => `${number(x)},${number(y)}`).join(" ");
+    const paint = `url(#${names[index]})`;
+    return `  <polygon points="${list}" fill="${paint}" stroke="${paint}" stroke-width="${radius * 2}" stroke-linejoin="round"/>`;
+  });
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${GRID} ${GRID}">
+  <defs>
+${gradients.join("\n")}
   </defs>
-  <rect width="${GRID}" height="${GRID}" rx="${BADGE_RADIUS}" fill="url(#badge)"/>
-  <g fill="#fff" stroke="#fff" stroke-width="${WING_RADIUS * 2}" stroke-linejoin="round">
-${polygons}
-  </g>
+${polygons.join("\n")}
 </svg>
 `;
 }
@@ -158,7 +172,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
   mkdirSync(join(root, "store"), { recursive: true });
 
   let count = 0;
-  for (const state of Object.keys(BADGES)) {
+  for (const state of Object.keys(PALETTES)) {
     for (const size of [16, 32, 48, 128]) {
       // The store asks for 96px of artwork inside the 128px icon.
       const pad = size === 128 ? 16 : 0;
