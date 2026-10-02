@@ -2,7 +2,7 @@
 
 Texts to paste into the Chrome Web Store and Microsoft Edge Add-ons dashboards. The name and the short description come from the package (`_locales/*/messages.json`); everything else is typed into the dashboard.
 
-Images are in [`store/`](../../store).
+Images are in [`store/`](../../store); [publishing.md](publishing.md#2-imagens-qual-arquivo-vai-em-cada-campo) says which file goes in each dashboard field.
 
 The listing says what Lepidox does, in short sentences. What it does not do, and how it handles data, is explained in the [README](../../README.md) and in the [privacy policy](../../PRIVACY.md).
 
