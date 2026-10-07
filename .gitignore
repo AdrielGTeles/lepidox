@@ -3,3 +3,5 @@ Thumbs.db
 *.zip
 .idea/
 .vscode/
+dist/
+node_modules/

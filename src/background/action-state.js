@@ -1,41 +1,42 @@
+// Copyright (c) 2026 Adriel Teles
 // SPDX-License-Identifier: MPL-2.0
+
+import { t } from "../shared/i18n.js";
 
 const ICON_SIZES = [16, 32, 48, 128];
 
+const STATES = {
+  inactive: { badge: "", color: "#53667d", title: "actionTitleInactive" },
+  active: { badge: "ON", color: "#62b58f", title: "actionTitleActive" },
+  paused: { badge: "II", color: "#c4a95a", title: "actionTitlePaused" },
+  error: { badge: "!", color: "#d86973", title: "actionTitleError" }
+};
+
+let lastState = null;
+
 function iconPaths(state) {
-  const safe = ["active", "paused", "error", "inactive"].includes(state) ? state : "inactive";
   return Object.fromEntries(
-    ICON_SIZES.map((size) => [String(size), `assets/icons/lepidox-${safe}-${size}.png`])
+    ICON_SIZES.map((size) => [String(size), `/assets/icons/lepidox-${state}-${size}.png`])
   );
 }
 
+function stateFor(runtime) {
+  if (runtime?.error) return "error";
+  if (runtime?.running && runtime?.paused) return "paused";
+  if (runtime?.running) return "active";
+  return "inactive";
+}
+
 export async function syncActionState(runtime) {
-  let state = "inactive";
-  let badge = "";
-  let badgeColor = "#53667d";
-  let title = "Lepidox · Inativo";
+  const state = stateFor(runtime);
+  if (state === lastState) return;
+  lastState = state;
 
-  if (runtime?.error) {
-    state = "error";
-    badge = "!";
-    badgeColor = "#d86973";
-    title = "Lepidox · Atenção necessária";
-  } else if (runtime?.running && runtime?.paused) {
-    state = "paused";
-    badge = "II";
-    badgeColor = "#c4a95a";
-    title = "Lepidox · Investigação pausada";
-  } else if (runtime?.running) {
-    state = "active";
-    badge = "ON";
-    badgeColor = "#62b58f";
-    title = "Lepidox · Rotação ativa";
-  }
-
+  const { badge, color, title } = STATES[state];
   await Promise.all([
     chrome.action.setIcon({ path: iconPaths(state) }),
     chrome.action.setBadgeText({ text: badge }),
-    chrome.action.setBadgeBackgroundColor({ color: badgeColor }),
-    chrome.action.setTitle({ title })
+    chrome.action.setBadgeBackgroundColor({ color }),
+    chrome.action.setTitle({ title: t(title) })
   ]);
 }

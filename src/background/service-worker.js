@@ -1,16 +1,20 @@
+// Copyright (c) 2026 Adriel Teles
 // SPDX-License-Identifier: MPL-2.0
 
-import { MESSAGE } from "../core/constants.js";
+import { MESSAGE, STORAGE_KEYS } from "../core/constants.js";
+import { migrateStorage } from "../core/storage.js";
+import { t } from "../shared/i18n.js";
+import { preflightList } from "./preflight.js";
 import {
   getPublicState,
   handleAlarm,
-  handleManagedTabClosed,
+  handleListsChanged,
   handleTabActivated,
+  handleTabRemoved,
   handleTabUpdated,
   jumpToScreen,
   nextScreen,
   pauseRotation,
-  preflightList,
   previousScreen,
   recoverBrowserSession,
   recoverScheduler,
@@ -19,11 +23,9 @@ import {
   stopRotation,
   togglePause
 } from "./rotation-manager.js";
-import { syncActionState } from "./action-state.js";
 
 chrome.runtime.onInstalled.addListener(() => {
-  syncActionState(null).catch(console.error);
-  console.info("Lepidox 1.0.0 installed.");
+  migrateStorage().catch(console.error);
 });
 
 chrome.runtime.onStartup.addListener(() => {
@@ -42,8 +44,12 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
   handleTabActivated(tabId).catch(console.error);
 });
 
-chrome.tabs.onRemoved.addListener((tabId) => {
-  handleManagedTabClosed(tabId).catch(console.error);
+chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
+  handleTabRemoved(tabId, removeInfo).catch(console.error);
+});
+
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[STORAGE_KEYS.LISTS]) handleListsChanged().catch(console.error);
 });
 
 chrome.commands.onCommand.addListener((command) => {
@@ -56,37 +62,33 @@ chrome.commands.onCommand.addListener((command) => {
   actions[command]?.().catch(console.error);
 });
 
+const handlers = {
+  [MESSAGE.GET_STATE]: () => {},
+  [MESSAGE.START_LIST]: (message) => startList(message.listId, message.windowId, message.startIndex ?? 0),
+  [MESSAGE.STOP]: () => stopRotation(),
+  [MESSAGE.PAUSE]: () => pauseRotation(),
+  [MESSAGE.RESUME]: () => resumeRotation(),
+  [MESSAGE.NEXT]: () => nextScreen(),
+  [MESSAGE.PREVIOUS]: () => previousScreen(),
+  [MESSAGE.JUMP_TO]: (message) => jumpToScreen(message.index)
+};
+
+// Every command answers with the resulting session state, so callers render
+// from the reply instead of asking again.
+async function dispatch(message) {
+  if (message?.type === MESSAGE.PREFLIGHT_LIST) return preflightList(message.listId, message.windowId);
+  const handler = handlers[message?.type];
+  if (!handler) throw new Error(t("errorUnknownMessage"));
+  await handler(message);
+  return getPublicState();
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  (async () => {
-    switch (message?.type) {
-      case MESSAGE.GET_STATE:
-      case MESSAGE.REFRESH_STATE:
-        return getPublicState();
-      case MESSAGE.START_LIST:
-        return startList(message.listId, message.windowId, message.startIndex ?? 0);
-      case MESSAGE.STOP:
-        return stopRotation();
-      case MESSAGE.PAUSE:
-        return pauseRotation();
-      case MESSAGE.RESUME:
-        return resumeRotation();
-      case MESSAGE.NEXT:
-        return nextScreen();
-      case MESSAGE.PREVIOUS:
-        return previousScreen();
-      case MESSAGE.JUMP_TO:
-        return jumpToScreen(message.index);
-      case MESSAGE.PREFLIGHT_LIST:
-        return preflightList(message.listId, message.windowId);
-      default:
-        throw new Error("Mensagem desconhecida.");
-    }
-  })()
+  dispatch(message)
     .then((data) => sendResponse({ ok: true, data }))
     .catch((error) => sendResponse({ ok: false, error: error.message }));
-
   return true;
 });
 
-// Restores sub-30s timers whenever the service worker is brought back to life.
+// Restores timers and the toolbar icon whenever the service worker is brought back to life.
 recoverScheduler().catch(console.error);

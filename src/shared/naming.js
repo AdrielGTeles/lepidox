@@ -1,4 +1,7 @@
+// Copyright (c) 2026 Adriel Teles
 // SPDX-License-Identifier: MPL-2.0
+
+import { t } from "./i18n.js";
 
 export function fallbackTitle(url, index = 0) {
   try {
@@ -10,36 +13,51 @@ export function fallbackTitle(url, index = 0) {
         return `${parsed.hostname} · ${last}`;
       }
     }
-    return parsed.hostname || `Tela ${index + 1}`;
+    return parsed.hostname || t("screenNumber", index + 1);
   } catch {
-    return `Tela ${index + 1}`;
+    return t("screenNumber", index + 1);
   }
 }
 
-export function screenTitle(screen, index = 0) {
-  return String(screen?.name || screen?.resolvedTitle || fallbackTitle(screen?.url || "", index)).trim();
+// Precedence: name typed by the user, then the title observed on the page, then the URL.
+export function screenTitle(screen, index = 0, observedTitle = "") {
+  return String(screen?.name || observedTitle || fallbackTitle(screen?.url || "", index)).trim();
 }
 
-export function numberedScreenTitle(screen, index = 0) {
-  return `${String(index + 1).padStart(2, "0")} · ${screenTitle(screen, index)}`;
+const LOGIN_PATH = /(^|\/)(login|signin|sign-in|sign_in|logon|sso|oauth2?|authorize|auth|adfs|saml2?)(\/|\.|$)/i;
+const LOGIN_HOST = /^(login|signin|sso|auth|accounts|id)\.|(^|\.)(okta|auth0|onelogin)\.com$/i;
+const ERROR_TEXT = /this site can.?t be reached|não é possível acessar|page not found|server error|dns_probe|err_/;
+
+function samePage(a, b) {
+  try {
+    const first = new URL(a);
+    const second = new URL(b);
+    return first.origin === second.origin
+      && first.pathname.replace(/\/+$/, "") === second.pathname.replace(/\/+$/, "");
+  } catch {
+    return false;
+  }
 }
 
-export function detectPageState(url = "", title = "") {
-  const value = `${url} ${title}`.toLowerCase();
+// Only tab URL and title are inspected, never page content. A screen counts as
+// "auth" when it was redirected away from the configured address to something
+// that looks like a sign-in page; a dashboard merely named "Login metrics" is not.
+export function detectPageState(url = "", title = "", configuredUrl = "") {
   if (
     url.startsWith("chrome-error://") ||
     url.startsWith("edge-error://") ||
-    /this site can.?t be reached|não é possível acessar|page not found|server error|dns_probe|err_/.test(value)
+    ERROR_TEXT.test(`${url} ${title}`.toLowerCase())
   ) {
     return "error";
   }
 
-  if (
-    /(^|[\/?#._-])(login|signin|sign-in|logon|sso|oauth|authorize|authentication|auth)([\/?#._-]|$)/i.test(url) ||
-    /sign in|log in|login|entrar|autentica[cç][aã]o|authentication required/.test(title.toLowerCase()) ||
-    /login\.microsoftonline\.com|adfs|okta\.com\/.*signin/i.test(url)
-  ) {
-    return "auth";
+  if (configuredUrl && !samePage(url, configuredUrl)) {
+    try {
+      const parsed = new URL(url);
+      if (LOGIN_HOST.test(parsed.hostname) || LOGIN_PATH.test(parsed.pathname)) return "auth";
+    } catch {
+      // Not a parseable URL: nothing to conclude.
+    }
   }
 
   return "ready";

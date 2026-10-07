@@ -1,0 +1,19 @@
+{
+  "name": "lepidox",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Dashboard rotator for wall screens, war rooms and NOCs. Chrome and Microsoft Edge extension.",
+  "author": "Adriel Teles",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/AdrielGTeles/lepidox",
+  "type": "module",
+  "scripts": {
+    "validate": "node scripts/validate.mjs",
+    "test": "node scripts/validate.mjs && node --test \"tests/*.test.mjs\"",
+    "build": "node scripts/build.mjs",
+    "icons": "node scripts/icons.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
