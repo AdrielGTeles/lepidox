@@ -15,21 +15,23 @@ Lepidox is an extension for Chrome and Microsoft Edge. You give it a list of das
 - **Preloads.** Three tabs stay loaded: current, next and previous. A jump to a distant screen loads the page before switching to it.
 - **Pauses to investigate.** While paused, 3, 5 or 7 neighbouring screens stay ready. Clicking one of those tabs moves the session there.
 - **Follows your edits.** Lists save as you edit. A running rotation picks up reorders, additions, removals and disabled screens without restarting.
-- **Flags problems.** A screen redirected to a sign-in page, or one that fails to load, is marked in the popup and in the list. *Check access* tests a whole list before it goes on the wall.
-- **Recovers.** A managed tab closed by accident is reopened. A list can resume by itself when the browser starts.
+- **Flags problems.** A screen redirected to a sign-in page, or one that fails to load (unknown host, refused connection, no network), is marked in the popup and in the list with the browser's error code. *Check access* tests a whole list before it goes on the wall.
+- **Recovers.** A managed tab closed by accident is reopened. An extension update does not stop the rotation. A list can resume by itself when the browser starts, reusing the tabs the browser restores.
+- **Runs the wall.** Per list: full screen in a window of its own, keep the display on, and reload each screen in the background before it comes round again.
+- **Zooms per screen.** 25 to 300 %, applied to that tab only, so the dashboard fits the TV.
 - **Shows its state.** The toolbar icon changes colour: grey when stopped, green when rotating, amber when paused, red when something needs attention.
 - Keyboard shortcuts, JSON import and export, English and Brazilian Portuguese.
 
 ## What it does not do
 
 - **It does not sign in for you.** Screens open in ordinary tabs and use the sessions your browser already has. When a session expires, Lepidox tells you which screen is asking for a sign-in; you sign in on that tab.
-- **It does not read your pages.** It has no access to page content, cookies or passwords. It sees only the title, address and loading state of the tabs it manages.
+- **It does not read your pages.** It has no access to page content, cookies or passwords. It sees only the title, address and loading state of the tabs it manages, and whether they failed to load.
 - **It does not send anything anywhere.** There is no account, server or analytics. Lists are kept in this browser's storage and are not synced between devices; use export and import to move them.
 - **It does not keep every dashboard open.** Only the screens around the current one are loaded. A screen that leaves that window is reloaded when its turn comes back, so anything not in its address (a scroll position, a filter picked by hand) is lost.
 - **It does not take over your tabs.** It opens its own tabs and closes them when you stop. The tabs you already had stay as they were.
 - **It does not see errors inside a page.** A dashboard that loads but shows "no data" or an error panel looks fine to Lepidox. It detects redirects to a sign-in page and pages that fail to load.
 - **It does not run two lists at once**, and a rotation lives in one browser window.
-- **It does not switch to full screen.** Use the browser's own full-screen mode (F11).
+- **It does not block what the pages themselves show.** Cookie banners, notification prompts or pop-ups inside a dashboard stay as the site draws them.
 
 ## Install
 
@@ -60,8 +62,10 @@ Change them in `chrome://extensions/shortcuts` or `edge://extensions/shortcuts`.
 | `tabs` | Open, switch, reuse and close the tabs that show your screens; read their title and address to name screens and notice sign-in redirects; list open tabs when you create a list from them. |
 | `storage` | Keep your lists and the state of a running rotation in the browser. |
 | `alarms` | Wake the extension when it is time to rotate. |
+| `webNavigation` | Learn that a page in a managed tab failed to load, and why. Navigation in other tabs is ignored. |
+| `power` | Keep the display on while a list set to do so is running. |
 
-Lepidox requests no host permissions. See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
+The install warning for `webNavigation` ("Read your browsing history") is the same one `tabs` already shows; `power` shows none. Lepidox requests no host permissions. See [PRIVACY.md](PRIVACY.md) and [SECURITY.md](SECURITY.md).
 
 ## Development
 
@@ -101,6 +105,10 @@ The logo is a screen outline that ends in a clockwise arrow: dashboards in conti
 In the toolbar the mark is green while rotating, amber when paused, red when something needs attention and grey when stopped. The popup, options page and store logo use copper.
 
 `npm run icons` draws the SVG and every PNG from the same outline; the script has no dependencies. Open [the brand preview](docs/brand.html) to see the logo on light and dark backgrounds, at actual icon sizes and in each toolbar state.
+
+## Support
+
+Lepidox is free. If it helps on your wall, you can [buy me a coffee](https://buymeacoffee.com/adrielgtelj).
 
 ## License
 

@@ -9,6 +9,8 @@ import {
   getPublicState,
   handleAlarm,
   handleListsChanged,
+  handleNavigationError,
+  handleNavigationStarted,
   handleTabActivated,
   handleTabRemoved,
   handleTabUpdated,
@@ -16,21 +18,29 @@ import {
   nextScreen,
   pauseRotation,
   previousScreen,
-  recoverBrowserSession,
   recoverScheduler,
+  resumeAfterUpdate,
+  resumeAtBrowserStart,
   resumeRotation,
   startList,
   stopRotation,
   togglePause
 } from "./rotation-manager.js";
 
-chrome.runtime.onInstalled.addListener(() => {
-  migrateStorage().catch(console.error);
+chrome.runtime.onInstalled.addListener(({ reason }) => {
+  migrateStorage()
+    // "chrome_update" comes with a browser restart, which may not send onStartup.
+    .then(() => (reason === "update" ? resumeAfterUpdate() : resumeAtBrowserStart()))
+    .catch(console.error);
 });
 
 chrome.runtime.onStartup.addListener(() => {
-  recoverBrowserSession().catch(console.error);
+  resumeAtBrowserStart().catch(console.error);
 });
+
+chrome.windows.onCreated.addListener((window) => {
+  if (window.type === "normal") resumeAtBrowserStart({ firstWindowOnly: true }).catch(console.error);
+}, { windowTypes: ["normal"] });
 
 chrome.alarms.onAlarm.addListener((alarm) => {
   handleAlarm(alarm).catch(console.error);
@@ -46,6 +56,14 @@ chrome.tabs.onActivated.addListener(({ tabId }) => {
 
 chrome.tabs.onRemoved.addListener((tabId, removeInfo) => {
   handleTabRemoved(tabId, removeInfo).catch(console.error);
+});
+
+chrome.webNavigation.onBeforeNavigate.addListener((details) => {
+  handleNavigationStarted(details).catch(console.error);
+});
+
+chrome.webNavigation.onErrorOccurred.addListener((details) => {
+  handleNavigationError(details).catch(console.error);
 });
 
 chrome.storage.onChanged.addListener((changes, area) => {

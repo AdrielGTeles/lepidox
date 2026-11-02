@@ -175,8 +175,13 @@ async function forLocale(locale) {
       args: [`--lang=${copy.lang}`, `--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`, "--no-first-run",
         `--host-resolver-rules=MAP dashboards.example.com 127.0.0.1:${port}`]
     });
-    let [sw] = ctx.serviceWorkers();
-    if (!sw) sw = await ctx.waitForEvent("serviceworker", { timeout: 15000 });
+    // Edge also runs workers of its own built-in extensions: wait for Lepidox's, and for its APIs.
+    const isLepidox = (worker) => worker.url().endsWith("/src/background/service-worker.js");
+    let sw = ctx.serviceWorkers().find(isLepidox);
+    if (!sw) sw = await ctx.waitForEvent("serviceworker", { predicate: isLepidox, timeout: 15000 });
+    for (let attempt = 0; attempt < 50 && !(await sw.evaluate(() => Boolean(globalThis.chrome?.storage))); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 200));
+    }
     const id = new URL(sw.url()).host;
     const dir = `${OUT}/screenshots/${locale}`;
     mkdirSync(dir, { recursive: true });

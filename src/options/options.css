@@ -33,6 +33,16 @@ body {
   padding: 12px 24px;
 }
 
+/* Messages take the free space in the sticky header, so they never cover the page. */
+.siteHeaderInner .toasts {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.siteHeaderInner .toast {
+  max-width: 560px;
+}
+
 .brand {
   display: flex;
   align-items: center;
@@ -241,12 +251,12 @@ body {
   gap: 8px;
 }
 
-/* Screen rows: handle, number, address, name, time, on/off, remove */
+/* Screen rows: handle, number, address, name, time, zoom, on/off, remove */
 
 .screenColumns,
 .screenRow {
   display: grid;
-  grid-template-columns: 26px 26px minmax(0, 2fr) minmax(0, 1.2fr) 88px 40px 30px;
+  grid-template-columns: 26px 26px minmax(0, 2fr) minmax(0, 1.2fr) 88px 76px 40px 30px;
   align-items: center;
   column-gap: 10px;
 }
@@ -345,11 +355,18 @@ body {
   border-style: dashed;
 }
 
-/* Advanced options */
+/* Wall and advanced options */
 
+.wallOptions,
 .advanced {
   padding-top: 12px;
   border-top: 1px solid var(--border);
+}
+
+.wallOptions h3 {
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .advanced summary {
@@ -507,6 +524,20 @@ body {
     padding: 16px;
   }
 
+  .siteHeaderInner {
+    flex-wrap: wrap;
+  }
+
+  .siteHeaderInner .toasts {
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .siteHeaderInner .toast {
+    flex: 1;
+    max-width: none;
+  }
+
   .editorHead {
     grid-template-columns: 1fr;
   }
@@ -516,11 +547,11 @@ body {
   }
 
   .screenRow {
-    grid-template-columns: 26px 26px minmax(0, 1fr) 88px 40px 30px;
+    grid-template-columns: 26px 26px minmax(0, 1fr) 88px 76px 40px 30px;
   }
 
   .screenRow .urlCell {
-    grid-column: 3 / 7;
+    grid-column: 3 / 8;
   }
 
   .screenRow .nameCell {
@@ -533,6 +564,6 @@ body {
   }
 
   .rowNote {
-    grid-column: 3 / 7;
+    grid-column: 3 / 8;
   }
 }

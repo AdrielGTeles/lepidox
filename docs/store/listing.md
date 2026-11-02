@@ -25,12 +25,15 @@ Add your dashboards to a list, set the time and press Start. Lepidox shows one s
 • Pause to investigate and jump to any screen.
 • Edit the list while it is running.
 • See which screens need a sign-in or failed to load.
+• Full screen in a window of its own, with the display kept on.
+• Zoom each screen to fit the TV.
 • Pause, next, previous and stop from the keyboard.
 • Import and export your lists.
 
 Your lists stay in your browser.
 
 Open source: https://github.com/AdrielGTeles/lepidox
+Support the project: https://buymeacoffee.com/adrielgtelj
 English and Brazilian Portuguese.
 ```
 
@@ -59,12 +62,15 @@ Coloque seus dashboards em uma lista, defina o tempo e clique em Iniciar. O Lepi
 • Pause para investigar e pule para qualquer tela.
 • Edite a lista com a rotação em andamento.
 • Veja quais telas pedem login ou não carregaram.
+• Tela cheia numa janela própria, com a tela sempre ligada.
+• Zoom por tela, para encaixar o dashboard na TV.
 • Pause, avance, volte e encerre pelo teclado.
 • Importe e exporte suas listas.
 
 Suas listas ficam no seu navegador.
 
 Código aberto: https://github.com/AdrielGTeles/lepidox
+Apoie o projeto: https://buymeacoffee.com/adrielgtelj
 Português do Brasil e inglês.
 ```
 
@@ -112,6 +118,16 @@ Stores the lists the user creates (names, URLs, durations) and the state of the 
 Wakes the extension's service worker when it is time to show the next dashboard. Rotation intervals of 30 seconds or more rely on an alarm, and shorter intervals use one as a fallback if the service worker is suspended.
 ```
 
+`webNavigation`
+```text
+Lepidox listens for main-frame navigation errors (webNavigation.onErrorOccurred) in the tabs it opened for the rotation, to mark a dashboard that failed to load (unknown host, refused connection, no network) and show the browser's error code. Events from other tabs are ignored. Nothing is stored about them or transmitted.
+```
+
+`power`
+```text
+When the user turns on "Keep the display on" for a list, Lepidox calls chrome.power.requestKeepAwake("display") while that list is rotating, so the wall screen does not turn off. It is released when the rotation stops.
+```
+
 **Host permissions**: none requested.
 
 **Remote code**: No, the extension does not use remote code. Every script is included in the package.
@@ -128,6 +144,7 @@ No account or sign-in is needed.
 3. Click "Start". Lepidox opens the pages in new tabs and switches between them every 30 seconds.
 4. Use the popup to pause, go to the next or previous screen, or stop. Stopping closes the tabs Lepidox opened.
 5. "Manage lists" opens the options page, where lists and timings are edited.
+6. In the options page, "On the wall" turns on full screen in a window of its own, keeping the display on (power permission) and reloading screens before they are shown. A screen whose address does not resolve (for example https://does-not-exist.invalid) is marked as failed with its error code (webNavigation permission).
 
-The tabs permission is used only to open and switch the tabs above and to read their title and URL. The extension makes no network requests of its own and has no host permissions or content scripts.
+The tabs permission is used only to open and switch the tabs above and to read their title and URL. The webNavigation permission is used only to notice that one of those tabs failed to load. The extension makes no network requests of its own and has no host permissions or content scripts.
 ```

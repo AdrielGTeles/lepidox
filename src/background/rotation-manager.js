@@ -4,7 +4,11 @@
 import {
   ALARM_NAME,
   LOAD_TIMEOUT_MS,
+  NAVIGATION_ABORTED,
   NORMAL_POOL_SIZE,
+  RECOVERY_VERSION,
+  RESTORE_POLL_MS,
+  RESTORE_SETTLE_MS,
   SCREEN_STATUS
 } from "../core/constants.js";
 import { effectiveDuration, rotationScreens } from "../core/lists.js";
@@ -21,9 +25,10 @@ import {
 import { t } from "../shared/i18n.js";
 import { detectPageState, screenTitle } from "../shared/naming.js";
 import { syncActionState } from "./action-state.js";
+import { syncKeepAwake } from "./keep-awake.js";
 import { exclusive } from "./lock.js";
 import { armDeadline, clearScheduler } from "./scheduler.js";
-import { removeTabsKeepingWindow, safeGetTab, waitForTabReady } from "./tabs.js";
+import { releaseWindow, safeGetTab, waitForTabReady } from "./tabs.js";
 
 // Everything exported from this module takes the lock itself. Helpers below the
 // exports assume the caller already holds it and must never call an export.
@@ -77,6 +82,7 @@ function poolTabIds(runtime) {
 async function persist(runtime) {
   await saveRuntime(runtime);
   await syncActionState(runtime);
+  syncKeepAwake(runtime);
 }
 
 async function schedule(runtime, list) {
@@ -85,6 +91,7 @@ async function schedule(runtime, list) {
     runtime.rotationMs = null;
     await clearScheduler();
     await persist(runtime);
+    await rememberSession(runtime);
     return;
   }
 
@@ -92,12 +99,42 @@ async function schedule(runtime, list) {
   runtime.nextRotationAt = Date.now() + runtime.rotationMs;
   await persist(runtime);
   await armDeadline(runtime.nextRotationAt, handleScheduledRotation);
+  await rememberSession(runtime);
+}
+
+// The session storage does not survive an update or a restart. This record, kept in
+// local storage, says where the session was and which tabs it owned, at the address
+// each one shows: that is what a restored session brings back. A tab still opening has
+// only a pending address.
+async function rememberSession(runtime) {
+  const tabs = await chrome.tabs.query({ windowId: runtime.windowId }).catch(() => []);
+  const byId = new Map(tabs.map((tab) => [tab.id, tab]));
+  const address = (tab) => tab.url || tab.pendingUrl || "";
+  await saveRecovery({
+    version: RECOVERY_VERSION,
+    listId: runtime.listId,
+    screenId: entryForTab(runtime, runtime.currentTabId)?.screenId ?? null,
+    windowId: runtime.windowId,
+    ownWindow: Boolean(runtime.ownWindow),
+    paused: runtime.paused,
+    live: true,
+    tabs: runtime.pool
+      .filter((entry) => byId.has(entry.tabId))
+      .map((entry) => ({ tabId: entry.tabId, screenId: entry.screenId, index: byId.get(entry.tabId).index, url: address(byId.get(entry.tabId)) })),
+    updatedAt: Date.now()
+  });
+}
+
+async function forgetSession({ keepForRestart }) {
+  const recovery = await getRecovery();
+  await saveRecovery(keepForRestart && recovery ? { ...recovery, live: false } : null);
 }
 
 // Returns true when the entry changed.
 function applyTabState(entry, tab) {
   const loaded = tab.status === "complete";
-  const status = loaded ? detectPageState(tab.url || "", tab.title || "", entry.url) : SCREEN_STATUS.LOADING;
+  const failed = entry.loadError ? SCREEN_STATUS.ERROR : null;
+  const status = loaded ? failed ?? detectPageState(tab.url || "", entry.url) : SCREEN_STATUS.LOADING;
   // While loading, the tab title is just the address; keep the last real one.
   const title = loaded && tab.title ? tab.title : entry.title;
   const finalUrl = tab.url || entry.finalUrl;
@@ -106,9 +143,21 @@ function applyTabState(entry, tab) {
   return true;
 }
 
+// Zoom is set per tab, so other tabs of the same site keep theirs. The browser resets
+// it on every navigation, hence once per load. null hands the tab back to the
+// browser's own zoom. Some pages (PDFs, error pages) refuse: they stay as they are.
+async function applyZoom(tabId, zoom) {
+  try {
+    await chrome.tabs.setZoomSettings(tabId, { mode: "automatic", scope: "per-tab" });
+    await chrome.tabs.setZoom(tabId, zoom ? zoom / 100 : 0);
+  } catch {
+    // Not zoomable.
+  }
+}
+
 async function rememberScreen(entry) {
   if (entry.status === SCREEN_STATUS.LOADING) return;
-  const patch = { status: entry.status, finalUrl: entry.finalUrl };
+  const patch = { status: entry.status, finalUrl: entry.finalUrl, error: entry.loadError ?? null };
   // A sign-in or error page title must not become the screen's automatic name.
   if (entry.status === SCREEN_STATUS.READY) patch.title = entry.title;
   await patchScreenMeta({ [entry.screenId]: patch });
@@ -123,6 +172,8 @@ function newEntry(tabId, screen, index) {
     status: SCREEN_STATUS.LOADING,
     title: "",
     finalUrl: screen.url,
+    zoom: screen.zoom ?? null,
+    loadError: null,
     lastUsedAt: Date.now()
   };
 }
@@ -180,7 +231,14 @@ async function closeEntry(runtime, entry) {
   }
 }
 
+async function windowState(windowId) {
+  return (await chrome.windows.get(windowId).catch(() => null))?.state ?? null;
+}
+
 async function rebalance(runtime, list) {
+  const tabsBefore = new Set(poolTabIds(runtime));
+  // Only a full screen this rebalance takes away (by opening a tab) is given back.
+  const wasFullscreen = runtime.fullscreen && !runtime.paused && await windowState(runtime.windowId) === "fullscreen";
   const wanted = desiredIndexes(runtime, list);
   const keepIds = new Set(wanted.map((index) => list.screens[index].id));
   // A screen still loading for a pending jump must not be recycled under it.
@@ -193,6 +251,8 @@ async function rebalance(runtime, list) {
     await closeEntry(runtime, extra);
   }
   await persist(runtime);
+  const openedTabs = poolTabIds(runtime).some((tabId) => !tabsBefore.has(tabId));
+  if (wasFullscreen && openedTabs) await returnToFullscreen(runtime, { openedTabs });
 }
 
 async function activateEntry(runtime, list, entry) {
@@ -206,18 +266,10 @@ async function activateEntry(runtime, list, entry) {
   if (needsSwitch) runtime.internalActivationTabId = entry.tabId;
   await persist(runtime);
   if (needsSwitch) await chrome.tabs.update(entry.tabId, { active: true });
-
-  if (list.autoResume) {
-    await saveRecovery({
-      listId: runtime.listId,
-      screenId: entry.screenId,
-      wasRunning: true,
-      updatedAt: Date.now()
-    });
-  }
 }
 
 async function showEntry(runtime, list, entry) {
+  const loadedBefore = new Set(runtime.pool.map((item) => item.screenId));
   await activateEntry(runtime, list, entry);
   await rebalance(runtime, list);
   // rebalance replaces an entry whose tab died in the meantime.
@@ -225,6 +277,19 @@ async function showEntry(runtime, list, entry) {
   if (shown && shown.tabId !== runtime.currentTabId) await activateEntry(runtime, list, shown);
   await schedule(runtime, list);
   await rememberScreen(shown ?? entry);
+  if (list.reloadBeforeShow) await reloadUpcoming(runtime, list, loadedBefore);
+}
+
+// In short lists every screen stays loaded: refresh the next one while it is hidden.
+// A screen that just entered the pool was loaded a moment ago and is left alone.
+async function reloadUpcoming(runtime, list, loadedBefore) {
+  if (runtime.paused || list.screens.length < 2) return;
+  const next = entryForScreen(runtime, list.screens[modulo(runtime.currentIndex + 1, list.screens.length)].id);
+  if (!next || next.tabId === runtime.currentTabId || !loadedBefore.has(next.screenId)) return;
+  if (next.status === SCREEN_STATUS.LOADING) return;
+  next.status = SCREEN_STATUS.LOADING;
+  await persist(runtime);
+  await chrome.tabs.reload(next.tabId).catch(() => {});
 }
 
 // Next/previous count from the screen being loaded, so pressing twice skips two.
@@ -323,12 +388,67 @@ async function handleScheduledRotation() {
 async function teardown(runtime, { keepRecovery = false, closeTabs = true } = {}) {
   await clearScheduler();
   await saveRuntime(null);
-  if (!keepRecovery) await saveRecovery(null);
+  await forgetSession({ keepForRestart: keepRecovery });
   await syncActionState(null);
-  if (closeTabs && runtime) await removeTabsKeepingWindow(runtime.windowId, poolTabIds(runtime));
+  syncKeepAwake(null);
+  if (closeTabs && runtime) await releaseWindow(runtime.windowId, poolTabIds(runtime), runtime);
 }
 
-export function startList(listId, windowId, startIndex = 0) {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Edge ignores a full-screen request made at creation or while a new window is still
+// opening, so it is asked for again until the window reports it (about 1.5 s at most).
+async function enterFullscreen(windowId) {
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    await chrome.windows.update(windowId, { state: "fullscreen" }).catch(() => {});
+    const window = await chrome.windows.get(windowId).catch(() => null);
+    if (!window || window.state === "fullscreen") return;
+    await sleep(150);
+  }
+}
+
+// Opening a tab takes its window out of full screen; switching, loading, zooming or
+// closing tabs does not. A full-screen session goes back once its tabs exist. While
+// paused it stays out, so the toolbar and the tabs are there to investigate with.
+async function returnToFullscreen(runtime, { openedTabs = false } = {}) {
+  if (!runtime.fullscreen || runtime.paused) return;
+  // The browser leaves full screen a moment after the tab opens: let that happen first.
+  for (let waited = 0; openedTabs && waited < 600; waited += 50) {
+    if (await windowState(runtime.windowId) !== "fullscreen") break;
+    await sleep(50);
+  }
+  await enterFullscreen(runtime.windowId);
+}
+
+// A full-screen list opens a window of its own on its first screen; a session that
+// resumes in tabs it already had keeps its window. Full screen comes once the tabs exist.
+async function prepareWindow(runtime, list, adopt) {
+  if (!list.fullscreen || adopt.length) return adopt;
+  const screen = list.screens[runtime.currentIndex];
+  const window = await chrome.windows.create({ url: screen.url, focused: true });
+  runtime.windowId = window.id;
+  runtime.ownWindow = true;
+  return [{ tabId: window.tabs[0].id, screenId: screen.id }];
+}
+
+// Tabs left by an earlier session (before an update or a restart) join the pool as they are.
+async function adoptTabs(runtime, list, adopt) {
+  for (const { tabId, screenId } of adopt) {
+    const index = list.screens.findIndex((screen) => screen.id === screenId);
+    const tab = await safeGetTab(tabId);
+    if (index < 0 || tab?.windowId !== runtime.windowId || entryForScreen(runtime, screenId)) continue;
+    const entry = newEntry(tabId, list.screens[index], index);
+    applyTabState(entry, tab);
+    runtime.pool.push(entry);
+    await chrome.tabs.update(tabId, { autoDiscardable: false });
+    // A restored tab may not have loaded its page yet.
+    if (tab.discarded || tab.status === "unloaded") await chrome.tabs.reload(tabId);
+    else if (entry.zoom) await applyZoom(tabId, entry.zoom);
+  }
+}
+
+// adopt: [{ tabId, screenId }] tabs to take over instead of opening new ones.
+export function startList(listId, windowId, startIndex = 0, { adopt = [], ownWindow = false, paused = false } = {}) {
   return exclusive(async () => {
     // Validate first: a list that cannot start must not end the one that is running.
     const list = await loadRotationList(listId);
@@ -337,9 +457,12 @@ export function startList(listId, windowId, startIndex = 0) {
 
     const runtime = {
       running: true,
-      paused: false,
+      paused,
       listId,
       windowId,
+      ownWindow,
+      fullscreen: list.fullscreen,
+      keepAwake: list.keepAwake,
       currentIndex: modulo(Number(startIndex) || 0, list.screens.length),
       currentTabId: null,
       pool: [],
@@ -354,19 +477,21 @@ export function startList(listId, windowId, startIndex = 0) {
 
     try {
       await persist(runtime);
+      await adoptTabs(runtime, list, await prepareWindow(runtime, list, adopt));
       await rebalance(runtime, list);
       const first = entryForScreen(runtime, list.screens[runtime.currentIndex].id);
       if (!first) throw new Error(t("errorStartFailed"));
       await activateEntry(runtime, list, first);
       await schedule(runtime, list);
+      await returnToFullscreen(runtime);
     } catch (error) {
       await teardown(runtime);
-      if (previous) await removeTabsKeepingWindow(previous.windowId, poolTabIds(previous));
+      if (previous) await releaseWindow(previous.windowId, poolTabIds(previous), previous);
       throw error;
     }
 
     // The previous session's tabs go last so the window is never left empty.
-    if (previous) await removeTabsKeepingWindow(previous.windowId, poolTabIds(previous));
+    if (previous) await releaseWindow(previous.windowId, poolTabIds(previous), previous);
   });
 }
 
@@ -383,6 +508,8 @@ export function pauseRotation() {
     await schedule(runtime, list);
     // A paused session keeps more neighbours loaded for quick manual browsing.
     await rebalance(runtime, list);
+    // Out of full screen, the toolbar and the tabs are there to investigate with.
+    if (runtime.fullscreen) await chrome.windows.update(runtime.windowId, { state: "maximized" }).catch(() => {});
   });
 }
 
@@ -395,6 +522,7 @@ export function resumeRotation() {
     runtime.error = null;
     await rebalance(runtime, list);
     await schedule(runtime, list);
+    await returnToFullscreen(runtime);
   });
 }
 
@@ -428,8 +556,40 @@ export function handleTabUpdated(tabId, changeInfo, tab) {
     const runtime = await getRuntime();
     const entry = runtime && entryForTab(runtime, tabId);
     if (!entry) return;
+    const loaded = changeInfo.status === "complete";
+    if (loaded && entry.zoom) await applyZoom(tabId, entry.zoom);
     const fresh = tab ?? await safeGetTab(tabId);
-    if (!fresh || !applyTabState(entry, fresh)) return;
+    if (fresh && applyTabState(entry, fresh)) {
+      await persist(runtime);
+      await rememberScreen(entry);
+    }
+    // Keep the session record on the address the tab ended up at, redirects included.
+    if (loaded || changeInfo.url) await rememberSession(runtime);
+  });
+}
+
+// A new navigation in a managed tab clears the failure of the previous one.
+export function handleNavigationStarted({ tabId, frameId }) {
+  if (frameId !== 0) return Promise.resolve();
+  return exclusive(async () => {
+    const runtime = await getRuntime();
+    const entry = runtime && entryForTab(runtime, tabId);
+    if (!entry?.loadError) return;
+    entry.loadError = null;
+    await persist(runtime);
+  });
+}
+
+// DNS failures, refused connections and the like: the tab still ends "complete",
+// on the browser's error page, so this is the only reliable signal.
+export function handleNavigationError({ tabId, frameId, error }) {
+  if (frameId !== 0 || error === NAVIGATION_ABORTED) return Promise.resolve();
+  return exclusive(async () => {
+    const runtime = await getRuntime();
+    const entry = runtime && entryForTab(runtime, tabId);
+    if (!entry) return;
+    entry.loadError = error;
+    entry.status = SCREEN_STATUS.ERROR;
     await persist(runtime);
     await rememberScreen(entry);
   });
@@ -474,9 +634,10 @@ export function handleTabRemoved(tabId, removeInfo) {
     if (!entry) return;
 
     if (removeInfo?.isWindowClosing) {
-      // Usually the browser quitting. Keep the recovery record so an auto-resume
-      // list comes back on the next start; only an explicit stop clears it.
-      await teardown(runtime, { keepRecovery: true, closeTabs: false });
+      // Usually the browser quitting. An auto-resume list keeps its record so it
+      // comes back on the next start; only an explicit stop clears it.
+      const list = (await getLists()).find((item) => item.id === runtime.listId);
+      await teardown(runtime, { keepRecovery: Boolean(list?.autoResume), closeTabs: false });
       return;
     }
 
@@ -514,6 +675,7 @@ export function handleListsChanged() {
       await teardown(runtime);
       return;
     }
+    runtime.keepAwake = list.keepAwake;
 
     const indexById = new Map(list.screens.map((screen, index) => [screen.id, index]));
     const current = entryForTab(runtime, runtime.currentTabId);
@@ -523,6 +685,11 @@ export function handleListsChanged() {
       const index = indexById.get(entry.screenId);
       if (index !== undefined && list.screens[index].url === entry.url) {
         entry.index = index;
+        const zoom = list.screens[index].zoom ?? null;
+        if ((entry.zoom ?? null) !== zoom) {
+          entry.zoom = zoom;
+          await applyZoom(entry.tabId, zoom);
+        }
       } else if (entry === current) {
         currentIsStale = true;
       } else {
@@ -568,6 +735,7 @@ export async function recoverScheduler() {
   const jump = await exclusive(async () => {
     const runtime = await getRuntime();
     await syncActionState(runtime);
+    syncKeepAwake(runtime);
     if (!runtime) return null;
     if (runtime.pendingJump) return runtime.pendingJump;
     if (runtime.paused) return null;
@@ -582,10 +750,80 @@ export async function recoverScheduler() {
   if (jump) await finishJump(jump);
 }
 
-export async function recoverBrowserSession() {
+function screenIndex(list, screenId) {
+  return Math.max(0, rotationScreens(list).findIndex((screen) => screen.id === screenId));
+}
+
+// After an update the browser is still running: the window and the tabs the
+// session owned are still there, so the rotation carries on in them.
+export async function resumeAfterUpdate() {
   if (await getRuntime()) return;
   const recovery = await getRecovery();
-  if (!recovery?.wasRunning) return;
+  if (recovery?.version !== RECOVERY_VERSION || !recovery.live) return;
+
+  const list = (await getLists()).find((item) => item.id === recovery.listId);
+  const window = await chrome.windows.get(recovery.windowId).catch(() => null);
+  // The window is gone: the update was applied while the browser restarted.
+  if (!window) return resumeAtBrowserStart();
+  if (!list || window.type !== "normal") return;
+
+  const adopt = [];
+  for (const saved of recovery.tabs ?? []) {
+    const tab = await safeGetTab(saved.tabId);
+    // Tab ids are not reused while the browser runs; the origin only guards against a
+    // tab that moved on to another site. A tab recorded while still opening had no address.
+    const sameSite = !saved.url || sameOrigin(tab?.url || tab?.pendingUrl, saved.url);
+    if (tab?.windowId === recovery.windowId && sameSite) adopt.push({ tabId: tab.id, screenId: saved.screenId });
+  }
+  if (!adopt.length) return;
+
+  await startList(list.id, recovery.windowId, screenIndex(list, recovery.screenId), {
+    adopt,
+    ownWindow: Boolean(recovery.ownWindow),
+    paused: Boolean(recovery.paused)
+  });
+}
+
+function sameOrigin(a, b) {
+  try {
+    return new URL(a).origin === new URL(b).origin;
+  } catch {
+    return false;
+  }
+}
+
+// A restored session brings the rotation's tabs back at the positions they had.
+// Only a tab at the same position with the same address is taken over.
+function restoredTabs(recovery, tabs) {
+  const byWindow = new Map();
+  for (const tab of tabs) byWindow.set(tab.windowId, [...(byWindow.get(tab.windowId) ?? []), tab]);
+
+  let best = { windowId: null, adopt: [] };
+  for (const [windowId, windowTabs] of byWindow) {
+    const adopt = (recovery.tabs ?? []).flatMap((saved) => {
+      const tab = windowTabs.find((item) => item.index === saved.index && item.url === saved.url);
+      return tab ? [{ tabId: tab.id, screenId: saved.screenId }] : [];
+    });
+    if (adopt.length > best.adopt.length) best = { windowId, adopt };
+  }
+  return best;
+}
+
+// The browser may still be restoring tabs when the extension starts.
+async function waitForRestoredTabs(recovery) {
+  const wanted = recovery.tabs?.length ?? 0;
+  const deadline = Date.now() + RESTORE_SETTLE_MS;
+  for (;;) {
+    const found = restoredTabs(recovery, await chrome.tabs.query({ windowType: "normal" }));
+    if (found.adopt.length >= wanted || Date.now() >= deadline) return found;
+    await new Promise((resolve) => setTimeout(resolve, RESTORE_POLL_MS));
+  }
+}
+
+async function resumeList(firstWindowOnly) {
+  if (await getRuntime()) return;
+  const recovery = await getRecovery();
+  if (!recovery) return;
 
   const list = (await getLists()).find((item) => item.id === recovery.listId);
   if (!list?.autoResume) {
@@ -593,10 +831,27 @@ export async function recoverBrowserSession() {
     return;
   }
 
-  const currentWindow = await chrome.windows.getLastFocused();
-  if (!currentWindow?.id) return;
-  const startIndex = rotationScreens(list).findIndex((screen) => screen.id === recovery.screenId);
-  await startList(list.id, currentWindow.id, Math.max(0, startIndex));
+  const windows = await chrome.windows.getAll({ windowTypes: ["normal"] });
+  // No window yet (Edge starting in the background): the first one to open will call again.
+  if (!windows.length || (firstWindowOnly && windows.length > 1)) return;
+
+  const restored = await waitForRestoredTabs(recovery);
+  const focused = await chrome.windows.getLastFocused({ windowTypes: ["normal"] }).catch(() => windows[0]);
+  await startList(list.id, restored.windowId ?? focused.id, screenIndex(list, recovery.screenId), {
+    adopt: restored.adopt,
+    ownWindow: restored.adopt.length > 0 && Boolean(recovery.ownWindow)
+  });
+}
+
+let resuming = null;
+
+// Runs when the browser starts, and when the first window opens: Edge keeps running in
+// the background after its last window closes, so reopening it is not a browser start.
+export function resumeAtBrowserStart({ firstWindowOnly = false } = {}) {
+  resuming ??= resumeList(firstWindowOnly).finally(() => {
+    resuming = null;
+  });
+  return resuming;
 }
 
 // What the popup and options page render. Read-only, so it does not take the lock.
@@ -630,12 +885,15 @@ export async function getPublicState() {
     const known = meta[screen.id] ?? {};
     const observedTitle = entry?.status === SCREEN_STATUS.READY && entry.title ? entry.title : known.title;
     const lastProblem = [SCREEN_STATUS.AUTH, SCREEN_STATUS.ERROR].includes(known.status) ? known.status : SCREEN_STATUS.COLD;
+    const status = entry ? entry.status : lastProblem;
+    const code = entry ? entry.loadError : known.error;
     return {
       id: screen.id,
       url: screen.url,
       title: screenTitle(screen, index, observedTitle),
       duration: effectiveDuration(list, screen),
-      status: entry ? entry.status : lastProblem
+      status,
+      error: status === SCREEN_STATUS.ERROR && code ? code.replace(/^net::/, "") : null
     };
   });
   return state;

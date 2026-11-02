@@ -49,6 +49,27 @@ test("createList clamps durations and pool size", () => {
   assert.deepEqual(lists.createList(list), list, "normalizing twice changes nothing");
 });
 
+test("createList keeps the wall options and clamps zoom", () => {
+  const plain = lists.createList({});
+  assert.equal(plain.fullscreen, false);
+  assert.equal(plain.keepAwake, false);
+  assert.equal(plain.reloadBeforeShow, false);
+
+  const wall = lists.createList({ fullscreen: 1, keepAwake: true, reloadBeforeShow: "yes" });
+  assert.equal(wall.fullscreen, true);
+  assert.equal(wall.keepAwake, true);
+  assert.equal(wall.reloadBeforeShow, true);
+  assert.deepEqual(lists.createList(wall), wall, "normalizing twice changes nothing");
+
+  assert.equal(lists.createScreen({ zoom: 10 }).zoom, 25);
+  assert.equal(lists.createScreen({ zoom: 400 }).zoom, 300);
+  assert.equal(lists.createScreen({ zoom: "150" }).zoom, 150);
+  assert.equal(lists.createScreen({ zoom: 99.6 }).zoom, 100);
+  assert.equal(lists.createScreen({ zoom: "" }).zoom, null);
+  assert.equal(lists.createScreen({ zoom: "abc" }).zoom, null);
+  assert.equal(lists.createScreen({}).zoom, null);
+});
+
 test("uniqueListName avoids duplicates", () => {
   const existing = [{ name: "My list" }, { name: "My list 2" }];
   assert.equal(lists.uniqueListName(existing, "My list"), "My list 3");
@@ -65,14 +86,14 @@ test("screen names fall back from typed name to page title to address", () => {
 
 test("a sign-in is only reported after a redirect to a login page", () => {
   const configured = "https://grafana.test/d/abc/login-metrics";
-  assert.equal(detectPageState(configured, "Login metrics - Grafana", configured), "ready");
-  assert.equal(detectPageState("https://grafana.test/d/x/auth-service", "Auth service", "https://grafana.test/d/x/auth-service"), "ready");
-  assert.equal(detectPageState("https://grafana.test/login", "Grafana", configured), "auth");
-  assert.equal(detectPageState("https://login.microsoftonline.com/common/oauth2/authorize?x=1", "Sign in", configured), "auth");
-  assert.equal(detectPageState("https://sso.corp.test/realms/x/protocol/openid-connect/auth", "", configured), "auth");
-  assert.equal(detectPageState("https://grafana.test/d/abc/other", "Other", configured), "ready");
-  assert.equal(detectPageState("chrome-error://chromewebdata/", "", configured), "error");
-  assert.equal(detectPageState(configured, "This site can’t be reached", configured), "error");
+  assert.equal(detectPageState(configured, configured), "ready");
+  assert.equal(detectPageState("https://grafana.test/d/x/auth-service", "https://grafana.test/d/x/auth-service"), "ready");
+  assert.equal(detectPageState("https://grafana.test/login", configured), "auth");
+  assert.equal(detectPageState("https://login.microsoftonline.com/common/oauth2/authorize?x=1", configured), "auth");
+  assert.equal(detectPageState("https://sso.corp.test/realms/x/protocol/openid-connect/auth", configured), "auth");
+  assert.equal(detectPageState("https://grafana.test/d/abc/other", configured), "ready");
+  assert.equal(detectPageState("chrome-error://chromewebdata/", configured), "error");
+  assert.equal(detectPageState("edge-error://chromewebdata/", configured), "error");
 });
 
 test("migration moves observed data out of 1.0 lists", async () => {
@@ -98,7 +119,10 @@ test("migration moves observed data out of 1.0 lists", async () => {
     defaultDuration: 20,
     investigationPoolSize: 7,
     autoResume: true,
-    screens: [{ id: "a", name: "", url: "https://a.test/", duration: 15, enabled: true }]
+    fullscreen: false,
+    keepAwake: false,
+    reloadBeforeShow: false,
+    screens: [{ id: "a", name: "", url: "https://a.test/", duration: 15, zoom: null, enabled: true }]
   }]);
   const meta = await storage.getScreenMeta();
   assert.equal(meta.a.title, "Board A");

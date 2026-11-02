@@ -43,7 +43,10 @@ function sessionAlert() {
   const status = currentScreen()?.status;
   if (session.error) return { text: session.error, kind: "alertError" };
   if (status === SCREEN_STATUS.AUTH) return { text: t("alertAuth"), kind: "alertWarning" };
-  if (status === SCREEN_STATUS.ERROR) return { text: t("alertLoadError"), kind: "alertError" };
+  if (status === SCREEN_STATUS.ERROR) {
+    const code = currentScreen().error;
+    return { text: code ? t("alertLoadErrorCode", code) : t("alertLoadError"), kind: "alertError" };
+  }
   return null;
 }
 

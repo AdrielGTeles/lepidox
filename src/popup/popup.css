@@ -27,6 +27,15 @@ body {
   font-weight: 700;
 }
 
+/* Messages sit under the top bar and push the content down. */
+.toasts {
+  padding: 10px 16px 0;
+}
+
+.toast {
+  flex: 1;
+}
+
 main {
   display: flex;
   flex-direction: column;

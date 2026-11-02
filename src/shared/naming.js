@@ -26,7 +26,6 @@ export function screenTitle(screen, index = 0, observedTitle = "") {
 
 const LOGIN_PATH = /(^|\/)(login|signin|sign-in|sign_in|logon|sso|oauth2?|authorize|auth|adfs|saml2?)(\/|\.|$)/i;
 const LOGIN_HOST = /^(login|signin|sso|auth|accounts|id)\.|(^|\.)(okta|auth0|onelogin)\.com$/i;
-const ERROR_TEXT = /this site can.?t be reached|não é possível acessar|page not found|server error|dns_probe|err_/;
 
 function samePage(a, b) {
   try {
@@ -39,17 +38,13 @@ function samePage(a, b) {
   }
 }
 
-// Only tab URL and title are inspected, never page content. A screen counts as
+// Only the tab address is inspected, never page content. A screen counts as
 // "auth" when it was redirected away from the configured address to something
 // that looks like a sign-in page; a dashboard merely named "Login metrics" is not.
-export function detectPageState(url = "", title = "", configuredUrl = "") {
-  if (
-    url.startsWith("chrome-error://") ||
-    url.startsWith("edge-error://") ||
-    ERROR_TEXT.test(`${url} ${title}`.toLowerCase())
-  ) {
-    return "error";
-  }
+export function detectPageState(url = "", configuredUrl = "") {
+  // Pages that fail to load are reported by webNavigation: a failed page keeps its
+  // address and shows the host as title, so neither says anything here.
+  if (url.startsWith("chrome-error://") || url.startsWith("edge-error://")) return "error";
 
   if (configuredUrl && !samePage(url, configuredUrl)) {
     try {

@@ -3,10 +3,13 @@
 
 import {
   INVESTIGATION_POOL_SIZES,
+  MAX_ZOOM,
   MESSAGE,
   MIN_ROTATION_SECONDS,
+  MIN_ZOOM,
   SCREEN_STATUS,
-  STORAGE_KEYS
+  STORAGE_KEYS,
+  SUPPORT_URL
 } from "../core/constants.js";
 import {
   createList,
@@ -15,6 +18,7 @@ import {
   isValidScreenUrl,
   normalizeDuration,
   normalizeUrl,
+  normalizeZoom,
   rotationScreens,
   uniqueListName
 } from "../core/lists.js";
@@ -28,6 +32,9 @@ let lists = [];
 let meta = {};
 let session = null;
 let selectedId = null;
+
+// List switches in the "On the wall" section; each checkbox id is the list field.
+const WALL_OPTIONS = ["fullscreen", "keepAwake", "reloadBeforeShow", "autoResume"];
 
 function selectedList() {
   return lists.find((list) => list.id === selectedId) ?? null;
@@ -124,20 +131,24 @@ function renderSummary() {
   $("#preflight").disabled = !startable;
 }
 
+// What the running session sees, else what was last observed: { status, error }.
 function screenStatus(list, screen) {
   if (session?.listId === list.id) {
     const live = session.screens.find((item) => item.id === screen.id);
-    if (live && live.status !== SCREEN_STATUS.COLD) return live.status;
+    if (live && live.status !== SCREEN_STATUS.COLD) return { status: live.status, error: live.error };
   }
-  return meta[screen.id]?.status;
+  const known = meta[screen.id];
+  return { status: known?.status, error: known?.error?.replace(/^net::/, "") || null };
 }
 
 function rowNote(list, screen) {
   if (!screen.url) return null;
   if (!isValidScreenUrl(screen.url)) return { text: t("noteUrlInvalid"), kind: "error" };
-  const status = screenStatus(list, screen);
+  const { status, error } = screenStatus(list, screen);
   if (status === SCREEN_STATUS.AUTH) return { text: t("noteNeedsLogin"), kind: "auth" };
-  if (status === SCREEN_STATUS.ERROR) return { text: t("noteLoadFailed"), kind: "error" };
+  if (status === SCREEN_STATUS.ERROR) {
+    return { text: error ? t("noteLoadFailedCode", error) : t("noteLoadFailed"), kind: "error" };
+  }
   return null;
 }
 
@@ -174,22 +185,38 @@ function moveScreen(list, fromIndex, toIndex) {
   return true;
 }
 
+// Screens removed one after another share one message, and Undo brings them all back.
+let removal = null;
+
+function undoRemoval(batch) {
+  if (!lists.includes(batch.list)) return;
+  // Put back in reverse order, each at the position it was removed from.
+  for (const { screen, index } of [...batch.items].reverse()) {
+    batch.list.screens.splice(Math.min(index, batch.list.screens.length), 0, screen);
+  }
+  if (selectedId === batch.list.id) renderScreens();
+  commit();
+}
+
 function removeScreen(list, screen) {
   const index = list.screens.indexOf(screen);
   list.screens.splice(index, 1);
   renderScreens();
   commit();
-  toast(t("screenRemoved"), {
-    action: {
-      label: t("undo"),
-      run: () => {
-        if (!lists.includes(list)) return;
-        list.screens.splice(Math.min(index, list.screens.length), 0, screen);
-        if (selectedId === list.id) renderScreens();
-        commit();
-      }
+
+  if (removal?.list === list) {
+    removal.items.push({ screen, index });
+    removal.handle.update(plural(removal.items.length, "screensRemovedOne", "screensRemovedMany"));
+    return;
+  }
+  const batch = { list, items: [{ screen, index }] };
+  batch.handle = toast(plural(1, "screensRemovedOne", "screensRemovedMany"), {
+    action: { label: t("undo"), run: () => undoRemoval(batch) },
+    onClose: () => {
+      if (removal === batch) removal = null;
     }
   });
+  removal = batch;
 }
 
 function addScreens(list, screens, at = list.screens.length) {
@@ -239,6 +266,18 @@ function screenRow(list, screen, index) {
   });
   duration.value = screen.duration ?? "";
 
+  const zoom = el("input", {
+    class: "input screenZoom",
+    type: "number",
+    min: String(MIN_ZOOM),
+    max: String(MAX_ZOOM),
+    step: "5",
+    inputmode: "numeric",
+    placeholder: "100",
+    "aria-label": t("zoomOfScreen", number)
+  });
+  zoom.value = screen.zoom ?? "";
+
   const enabled = el("input", { type: "checkbox", "aria-label": t("includeScreen", number) });
   enabled.checked = screen.enabled;
 
@@ -248,6 +287,7 @@ function screenRow(list, screen, index) {
     el("div", { class: "urlCell" }, url),
     el("div", { class: "nameCell" }, name),
     duration,
+    zoom,
     el("label", { class: "switch", title: t("colOnHelp") }, enabled, el("span", { class: "switchTrack" })),
     el("button", {
       type: "button",
@@ -283,6 +323,11 @@ function screenRow(list, screen, index) {
   duration.addEventListener("change", () => {
     screen.duration = normalizeDuration(duration.value, null, true);
     duration.value = screen.duration ?? "";
+    commit();
+  });
+  zoom.addEventListener("change", () => {
+    screen.zoom = normalizeZoom(zoom.value);
+    zoom.value = screen.zoom ?? "";
     commit();
   });
   enabled.addEventListener("change", () => {
@@ -350,7 +395,7 @@ function renderEditor() {
 
   $("#listName").value = list.name;
   $("#defaultDuration").value = String(list.defaultDuration);
-  $("#autoResume").checked = list.autoResume;
+  for (const key of WALL_OPTIONS) $(`#${key}`).checked = list[key];
   for (const radio of document.querySelectorAll("#poolSize input")) {
     radio.checked = Number(radio.value) === list.investigationPoolSize;
   }
@@ -450,7 +495,7 @@ async function checkAccess() {
     refreshRows();
     const logins = results.filter((item) => item.status === SCREEN_STATUS.AUTH).length;
     const failures = results.filter((item) => item.status === SCREEN_STATUS.ERROR).length;
-    if (logins || failures) toast(t("checkProblems", logins, failures), { type: "error", duration: 7000 });
+    if (logins || failures) toast(t("checkProblems", logins, failures), { type: "error" });
     else toast(t("checkAllGood"), { type: "success" });
   } finally {
     label.textContent = t("checkAccess");
@@ -550,6 +595,7 @@ function renderFooter() {
   $("#versionLabel").textContent = `Lepidox ${manifest.version}`;
   $("#sourceLink").href = manifest.homepage_url;
   $("#privacyLink").href = `${manifest.homepage_url}/blob/main/PRIVACY.md`;
+  $("#supportLink").href = SUPPORT_URL;
 }
 
 // ---------------------------------------------------------------------------
@@ -654,10 +700,12 @@ function bindEvents() {
     refreshRows();
     commit();
   });
-  $("#autoResume").addEventListener("change", (event) => {
-    selectedList().autoResume = event.target.checked;
-    commit();
-  });
+  for (const key of WALL_OPTIONS) {
+    $(`#${key}`).addEventListener("change", (event) => {
+      selectedList()[key] = event.target.checked;
+      commit();
+    });
+  }
 
   $("#poolSize").replaceChildren(...INVESTIGATION_POOL_SIZES.map((size) =>
     el("label", {},

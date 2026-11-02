@@ -55,6 +55,7 @@
   "statusAttention": { "message": "Needs attention" },
   "alertAuth": { "message": "This screen is asking you to sign in. Sign in on the tab, then resume." },
   "alertLoadError": { "message": "This screen did not load. Check the address or your connection." },
+  "alertLoadErrorCode": { "message": "This screen did not load ($1). Check the address or your connection." },
 
   "timerNext": { "message": "Next screen in" },
   "timerPaused": { "message": "Rotation paused" },
@@ -109,15 +110,18 @@
   "colUrl": { "message": "Address (URL)" },
   "colName": { "message": "Name (optional)" },
   "colTime": { "message": "Time (s)" },
+  "colZoom": { "message": "Zoom (%)" },
   "colOn": { "message": "On" },
   "colOnHelp": { "message": "Include this screen in the rotation" },
   "namePlaceholder": { "message": "Automatic (page title)" },
   "noScreensYet": { "message": "No screens yet. Add one below." },
-  "screensHint": { "message": "Tip: paste several addresses at once, one per line. Leave the name empty to use the page title, and the time empty to use the list's." },
+  "screensHint": { "message": "Tip: paste several addresses at once, one per line. Leave the name empty to use the page title, the time empty to use the list's, and the zoom empty to keep the browser's." },
   "noteUrlInvalid": { "message": "This is not a valid web address. Use http:// or https://." },
   "noteNeedsLogin": { "message": "Asked for a sign-in the last time it loaded." },
   "noteLoadFailed": { "message": "Did not load the last time." },
-  "screenRemoved": { "message": "Screen removed." },
+  "noteLoadFailedCode": { "message": "Did not load the last time ($1)." },
+  "screensRemovedOne": { "message": "$1 screen removed." },
+  "screensRemovedMany": { "message": "$1 screens removed." },
   "undo": { "message": "Undo" },
   "removeScreen": { "message": "Remove screen" },
   "removeScreenNumber": { "message": "Remove screen $1" },
@@ -126,11 +130,19 @@
   "urlOfScreen": { "message": "Address of screen $1" },
   "nameOfScreen": { "message": "Name of screen $1" },
   "timeOfScreen": { "message": "Seconds on screen $1" },
+  "zoomOfScreen": { "message": "Zoom of screen $1, in percent" },
   "includeScreen": { "message": "Include screen $1 in the rotation" },
 
   "advanced": { "message": "Advanced options" },
   "pausePreload": { "message": "Screens kept ready while paused" },
   "pausePreloadHelp": { "message": "When paused, Lepidox keeps this many neighbouring screens loaded so you can browse them without waiting. More screens use more memory." },
+  "wallTitle": { "message": "On the wall" },
+  "fullscreen": { "message": "Full screen in its own window" },
+  "fullscreenHelp": { "message": "Start opens the rotation in a new window, in full screen. Pausing (keyboard shortcut) or F11 brings the toolbar back." },
+  "keepAwake": { "message": "Keep the display on" },
+  "keepAwakeHelp": { "message": "The display does not turn off while this list is running." },
+  "reloadBeforeShow": { "message": "Reload screens before showing them" },
+  "reloadBeforeShowHelp": { "message": "Each screen reloads in the background before its turn. For dashboards that do not refresh by themselves." },
   "autoResume": { "message": "Resume when the browser starts" },
   "autoResumeHelp": { "message": "Starts this list again if it was running when the browser was closed." },
 
@@ -153,5 +165,7 @@
 
   "footerPrivacy": { "message": "Your lists stay in this browser." },
   "footerSource": { "message": "Source code" },
-  "footerPrivacyPolicy": { "message": "Privacy policy" }
+  "footerPrivacyPolicy": { "message": "Privacy policy" },
+  "supportProject": { "message": "Support the project" },
+  "dismiss": { "message": "Dismiss" }
 }

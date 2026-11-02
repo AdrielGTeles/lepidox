@@ -55,6 +55,7 @@
   "statusAttention": { "message": "Precisa de atenção" },
   "alertAuth": { "message": "Esta tela está pedindo login. Entre na aba e depois continue." },
   "alertLoadError": { "message": "Esta tela não carregou. Verifique o endereço ou a conexão." },
+  "alertLoadErrorCode": { "message": "Esta tela não carregou ($1). Verifique o endereço ou a conexão." },
 
   "timerNext": { "message": "Próxima tela em" },
   "timerPaused": { "message": "Rotação pausada" },
@@ -109,15 +110,18 @@
   "colUrl": { "message": "Endereço (URL)" },
   "colName": { "message": "Nome (opcional)" },
   "colTime": { "message": "Tempo (s)" },
+  "colZoom": { "message": "Zoom (%)" },
   "colOn": { "message": "Ativa" },
   "colOnHelp": { "message": "Incluir esta tela na rotação" },
   "namePlaceholder": { "message": "Automático (título da página)" },
   "noScreensYet": { "message": "Nenhuma tela ainda. Adicione uma abaixo." },
-  "screensHint": { "message": "Dica: cole vários endereços de uma vez, um por linha. Deixe o nome vazio para usar o título da página e o tempo vazio para usar o da lista." },
+  "screensHint": { "message": "Dica: cole vários endereços de uma vez, um por linha. Deixe o nome vazio para usar o título da página, o tempo vazio para usar o da lista e o zoom vazio para manter o do navegador." },
   "noteUrlInvalid": { "message": "Este não é um endereço válido. Use http:// ou https://." },
   "noteNeedsLogin": { "message": "Pediu login na última vez que carregou." },
   "noteLoadFailed": { "message": "Não carregou na última vez." },
-  "screenRemoved": { "message": "Tela removida." },
+  "noteLoadFailedCode": { "message": "Não carregou na última vez ($1)." },
+  "screensRemovedOne": { "message": "$1 tela removida." },
+  "screensRemovedMany": { "message": "$1 telas removidas." },
   "undo": { "message": "Desfazer" },
   "removeScreen": { "message": "Remover tela" },
   "removeScreenNumber": { "message": "Remover tela $1" },
@@ -126,11 +130,19 @@
   "urlOfScreen": { "message": "Endereço da tela $1" },
   "nameOfScreen": { "message": "Nome da tela $1" },
   "timeOfScreen": { "message": "Segundos na tela $1" },
+  "zoomOfScreen": { "message": "Zoom da tela $1, em porcentagem" },
   "includeScreen": { "message": "Incluir a tela $1 na rotação" },
 
   "advanced": { "message": "Opções avançadas" },
   "pausePreload": { "message": "Telas prontas enquanto pausada" },
   "pausePreloadHelp": { "message": "Ao pausar, o Lepidox mantém esta quantidade de telas vizinhas carregadas para você navegar sem esperar. Mais telas usam mais memória." },
+  "wallTitle": { "message": "No telão" },
+  "fullscreen": { "message": "Tela cheia numa janela própria" },
+  "fullscreenHelp": { "message": "Ao iniciar, a rotação abre numa janela nova, em tela cheia. Pausar (atalho do teclado) ou F11 trazem a barra do navegador de volta." },
+  "keepAwake": { "message": "Manter a tela ligada" },
+  "keepAwakeHelp": { "message": "A tela não se apaga enquanto esta lista estiver em rotação." },
+  "reloadBeforeShow": { "message": "Recarregar as telas antes de exibir" },
+  "reloadBeforeShowHelp": { "message": "Cada tela é recarregada em segundo plano antes da sua vez. Para dashboards que não se atualizam sozinhos." },
   "autoResume": { "message": "Retomar ao abrir o navegador" },
   "autoResumeHelp": { "message": "Inicia esta lista de novo se ela estava em rotação quando o navegador foi fechado." },
 
@@ -153,5 +165,7 @@
 
   "footerPrivacy": { "message": "Suas listas ficam neste navegador." },
   "footerSource": { "message": "Código-fonte" },
-  "footerPrivacyPolicy": { "message": "Política de privacidade" }
+  "footerPrivacyPolicy": { "message": "Política de privacidade" },
+  "supportProject": { "message": "Apoie o projeto" },
+  "dismiss": { "message": "Fechar" }
 }

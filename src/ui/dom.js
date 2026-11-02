@@ -46,23 +46,86 @@ export function localize(root = document) {
   }
 }
 
-// toast("Screen removed", { action: { label: "Undo", run: restore } })
-export function toast(message, { type = "info", action = null, duration = 4000 } = {}) {
-  const area = $("#toasts");
-  if (!area) return;
+const TOAST_MS = { info: 4000, success: 4000, error: 6000, action: 8000 };
+let currentToast = null;
 
-  const item = el("div", { class: `toast ${type}`, role: "status" }, el("span", {}, message));
+// One message at a time, shown in the slot the page keeps for it (#toasts), so it never
+// covers anything. A new message replaces the current one. The countdown stops while
+// the pointer or the keyboard focus is on the message.
+// toast("Screen removed", { action: { label: "Undo", run: restore }, onClose })
+//   → { update(message), dismiss() }; update() also restarts the countdown.
+export function toast(message, { type = "info", action = null, duration, onClose = null } = {}) {
+  currentToast?.dismiss();
+  const area = $("#toasts");
+  if (!area) return { update() {}, dismiss() {} };
+
+  const total = duration ?? (action ? TOAST_MS.action : TOAST_MS[type] ?? TOAST_MS.info);
+  const text = el("span", {}, message);
+  const item = el("div", { class: `toast ${type}`, role: type === "error" ? "alert" : null }, text);
+  let remaining = total;
+  let startedAt = 0;
+  let timer = null;
+  let hovered = false;
+  let focused = false;
+
+  const handle = {
+    update(next) {
+      text.textContent = next;
+      stop();
+      remaining = total;
+      go();
+    },
+    dismiss() {
+      if (!item.isConnected) return;
+      clearTimeout(timer);
+      item.remove();
+      if (currentToast === handle) currentToast = null;
+      onClose?.();
+    }
+  };
+  function stop() {
+    if (!startedAt) return;
+    clearTimeout(timer);
+    remaining -= Date.now() - startedAt;
+    startedAt = 0;
+  }
+  function go() {
+    if (startedAt || hovered || focused) return;
+    startedAt = Date.now();
+    timer = setTimeout(handle.dismiss, Math.max(remaining, 1500));
+  }
+
   if (action) {
     item.append(el("button", {
       type: "button",
+      class: "toastAction",
       onclick: () => {
-        item.remove();
+        handle.dismiss();
         action.run();
       }
     }, action.label));
   }
-  area.append(item);
-  setTimeout(() => item.remove(), action ? Math.max(duration, 7000) : duration);
+  item.append(el("button", {
+    type: "button",
+    class: "toastClose",
+    title: t("dismiss"),
+    "aria-label": t("dismiss"),
+    onclick: handle.dismiss
+  }, icon("close")));
+
+  item.addEventListener("pointerenter", () => { hovered = true; stop(); });
+  item.addEventListener("pointerleave", () => { hovered = false; go(); });
+  item.addEventListener("focusin", () => { focused = true; stop(); });
+  item.addEventListener("focusout", (event) => {
+    if (item.contains(event.relatedTarget)) return;
+    focused = false;
+    go();
+  });
+
+  area.replaceChildren(item);
+  currentToast = handle;
+  go();
+  return handle;
 }
 
 export async function send(type, extra = {}) {

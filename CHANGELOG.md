@@ -1,5 +1,30 @@
 # Changelog
 
+## 1.2.0 - 2026-11-02
+
+### Fixed
+
+- An extension update no longer stops a running rotation: it carries on in the same window and tabs, paused if it was paused.
+- "Resume when the browser starts" works again, also when Edge keeps running in the background and only its window is reopened. Tabs the browser restores are reused instead of being opened a second time.
+- Pages that fail to load (unknown host, refused connection, no network, certificate errors) are flagged within seconds instead of after the 45-second timeout, with the browser's error code.
+- A dashboard whose title mentions errors (for example "Server errors by region") is no longer marked as failed.
+- Messages no longer cover the interface. One message at a time, in a space of its own: under the top bar in the popup and in the header of the options page. They have a close button and stay while the pointer is on them. Removing several screens in a row gives one message whose Undo brings them all back.
+
+### Added
+
+- **On the wall** options, per list:
+  - full screen in a window of its own (pausing leaves full screen so the toolbar and tabs can be used, resuming goes back);
+  - keep the display on while the list runs;
+  - reload screens in the background before they come round again.
+- Zoom per screen (25–300 %), applied to that tab only.
+- A "Support the project" link in the options page, and a Sponsor button on GitHub.
+
+### Changed
+
+- New permissions: `webNavigation`, to learn that a page failed to load, and `power`, to keep the display on. Neither adds an install warning: `webNavigation` shows the same "Read your browsing history" as `tabs`, and `power` shows none.
+- "Resume when the browser starts" moved from Advanced options to the new On the wall section.
+- A rotation that was running under 1.1.0 when this update arrives has to be started once more; later updates no longer interrupt it.
+
 ## 1.1.0 - 2026-10-02
 
 First release prepared for the Chrome Web Store and Microsoft Edge Add-ons.

@@ -105,6 +105,24 @@ export function validate() {
   }
   for (const key of used) if (!keys.includes(key)) errors.push(`Message "${key}" is used but not defined.`);
 
+  // Messages given substitutions (t("key", value) and plurals) need a $1 to put them in.
+  const substituted = new Set();
+  for (const [path, source] of Object.entries(text)) {
+    if (!path.endsWith(".js")) continue;
+    for (const match of source.matchAll(/\bt\(\s*"(\w+)"\s*,/g)) substituted.add(match[1]);
+    for (const match of source.matchAll(/\bplural\([^,]+,\s*"(\w+)",\s*"(\w+)"/g)) {
+      substituted.add(match[1]);
+      substituted.add(match[2]);
+    }
+  }
+  for (const [locale, entries] of Object.entries(messages)) {
+    for (const key of substituted) {
+      if (entries[key]?.message && !entries[key].message.includes("$1")) {
+        errors.push(`[${locale}] message "${key}" is given a value but has no $1.`);
+      }
+    }
+  }
+
   // Keys picked at runtime (t(condition ? "a" : "b")) only show up as plain string literals.
   const allJs = Object.entries(text).filter(([path]) => path.endsWith(".js")).map(([, source]) => source).join("\n");
   for (const key of keys) {

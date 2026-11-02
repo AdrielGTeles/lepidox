@@ -9,6 +9,8 @@ export const STORAGE_KEYS = {
   OPTIONS_INTENT: "lepidoxOptionsIntent"
 };
 
+export const SUPPORT_URL = "https://buymeacoffee.com/adrielgtelj";
+
 export const ALARM_NAME = "lepidox:rotate";
 export const MIN_ROTATION_SECONDS = 5;
 export const DEFAULT_ROTATION_SECONDS = 30;
@@ -16,8 +18,16 @@ export const FAST_TIMER_THRESHOLD_MS = 30_000;
 export const LOAD_TIMEOUT_MS = 45_000;
 export const PREFLIGHT_TIMEOUT_MS = 20_000;
 export const NORMAL_POOL_SIZE = 3;
+export const RECOVERY_VERSION = 2;
+export const RESTORE_SETTLE_MS = 3000;
+export const RESTORE_POLL_MS = 300;
 export const INVESTIGATION_POOL_SIZES = [3, 5, 7];
 export const DEFAULT_INVESTIGATION_POOL_SIZE = 5;
+export const MIN_ZOOM = 25;
+export const MAX_ZOOM = 300;
+
+// Reported when one navigation replaces another (a redirect, a reload): not a failure.
+export const NAVIGATION_ABORTED = "net::ERR_ABORTED";
 
 export const SCREEN_STATUS = {
   COLD: "cold",

@@ -18,6 +18,7 @@
           <small data-i18n="tagline"></small>
         </div>
       </div>
+      <div id="toasts" class="toasts" aria-live="polite"></div>
       <span id="sessionChip" class="pill hidden"></span>
     </div>
   </header>
@@ -85,6 +86,7 @@
           <span data-i18n="colUrl"></span>
           <span data-i18n="colName"></span>
           <span data-i18n="colTime"></span>
+          <span data-i18n="colZoom"></span>
           <span data-i18n="colOn"></span>
           <span></span>
         </div>
@@ -92,14 +94,37 @@
         <button id="addScreen" type="button" class="button buttonGhost addScreen" data-icon="plus" data-i18n="addScreen"></button>
         <p class="help" data-i18n="screensHint"></p>
 
-        <details class="advanced">
-          <summary data-i18n="advanced"></summary>
+        <section class="wallOptions" aria-labelledby="wallTitle">
+          <h3 id="wallTitle" data-i18n="wallTitle"></h3>
           <div class="option">
             <div>
-              <strong id="poolSizeLabel" data-i18n="pausePreload"></strong>
-              <p class="help" data-i18n="pausePreloadHelp"></p>
+              <strong id="fullscreenLabel" data-i18n="fullscreen"></strong>
+              <p class="help" data-i18n="fullscreenHelp"></p>
             </div>
-            <div id="poolSize" class="segmented" role="radiogroup" aria-labelledby="poolSizeLabel"></div>
+            <label class="switch">
+              <input id="fullscreen" type="checkbox" aria-labelledby="fullscreenLabel">
+              <span class="switchTrack"></span>
+            </label>
+          </div>
+          <div class="option">
+            <div>
+              <strong id="keepAwakeLabel" data-i18n="keepAwake"></strong>
+              <p class="help" data-i18n="keepAwakeHelp"></p>
+            </div>
+            <label class="switch">
+              <input id="keepAwake" type="checkbox" aria-labelledby="keepAwakeLabel">
+              <span class="switchTrack"></span>
+            </label>
+          </div>
+          <div class="option">
+            <div>
+              <strong id="reloadBeforeShowLabel" data-i18n="reloadBeforeShow"></strong>
+              <p class="help" data-i18n="reloadBeforeShowHelp"></p>
+            </div>
+            <label class="switch">
+              <input id="reloadBeforeShow" type="checkbox" aria-labelledby="reloadBeforeShowLabel">
+              <span class="switchTrack"></span>
+            </label>
           </div>
           <div class="option">
             <div>
@@ -110,6 +135,17 @@
               <input id="autoResume" type="checkbox" aria-labelledby="autoResumeLabel">
               <span class="switchTrack"></span>
             </label>
+          </div>
+        </section>
+
+        <details class="advanced">
+          <summary data-i18n="advanced"></summary>
+          <div class="option">
+            <div>
+              <strong id="poolSizeLabel" data-i18n="pausePreload"></strong>
+              <p class="help" data-i18n="pausePreloadHelp"></p>
+            </div>
+            <div id="poolSize" class="segmented" role="radiogroup" aria-labelledby="poolSizeLabel"></div>
           </div>
         </details>
 
@@ -143,6 +179,8 @@
     <a id="sourceLink" target="_blank" rel="noopener" data-i18n="footerSource"></a>
     <span aria-hidden="true">·</span>
     <a id="privacyLink" target="_blank" rel="noopener" data-i18n="footerPrivacyPolicy"></a>
+    <span aria-hidden="true">·</span>
+    <a id="supportLink" target="_blank" rel="noopener" data-i18n="supportProject"></a>
   </footer>
 
   <dialog id="tabsDialog" class="dialog">
@@ -168,7 +206,6 @@
     </form>
   </dialog>
 
-  <div id="toasts" class="toasts" aria-live="polite"></div>
   <script type="module" src="options.js"></script>
 </body>
 </html>

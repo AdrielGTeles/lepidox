@@ -5,7 +5,9 @@ import {
   DEFAULT_INVESTIGATION_POOL_SIZE,
   DEFAULT_ROTATION_SECONDS,
   INVESTIGATION_POOL_SIZES,
-  MIN_ROTATION_SECONDS
+  MAX_ZOOM,
+  MIN_ROTATION_SECONDS,
+  MIN_ZOOM
 } from "./constants.js";
 
 function uuid() {
@@ -17,6 +19,14 @@ export function normalizeDuration(value, fallback = DEFAULT_ROTATION_SECONDS, al
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return fallback;
   return Math.max(MIN_ROTATION_SECONDS, Math.round(parsed));
+}
+
+// Percent, or null to leave the browser's own zoom alone.
+export function normalizeZoom(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Math.round(parsed)));
 }
 
 export function isValidScreenUrl(value) {
@@ -46,6 +56,7 @@ export function createScreen(screen = {}) {
     name: generatedAlphaName ? "" : String(screen.name ?? "").trim(),
     url: String(screen.url ?? "").trim(),
     duration: normalizeDuration(screen.duration, null, true),
+    zoom: normalizeZoom(screen.zoom),
     enabled: screen.enabled !== false
   };
 }
@@ -71,6 +82,9 @@ export function createList(list = {}, index = 0) {
     defaultDuration: normalizeDuration(list.defaultDuration),
     investigationPoolSize: INVESTIGATION_POOL_SIZES.includes(pool) ? pool : DEFAULT_INVESTIGATION_POOL_SIZE,
     autoResume: Boolean(list.autoResume),
+    fullscreen: Boolean(list.fullscreen),
+    keepAwake: Boolean(list.keepAwake),
+    reloadBeforeShow: Boolean(list.reloadBeforeShow),
     screens
   };
 }
