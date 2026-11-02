@@ -35,7 +35,10 @@ Lepidox is an extension for Chrome and Microsoft Edge. You give it a list of das
 
 ## Install
 
-Store listings are in preparation. Until then, load it unpacked:
+- [Chrome Web Store](https://chromewebstore.google.com/detail/nbjokomgnlbodofhnpgdppahkjpglnjp)
+- [Microsoft Edge Add-ons](https://microsoftedge.microsoft.com/addons/detail/mmieebnhiodfadbajdnbdeapdhajilef)
+
+To run the code from this repository instead, load it unpacked:
 
 1. Clone this repository.
 2. Open `chrome://extensions` or `edge://extensions`.
